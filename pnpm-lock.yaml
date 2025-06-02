@@ -32,6 +32,7 @@ importers:
 
   apps/backend:
     dependencies:
+<<<<<<< HEAD
       '@neondatabase/serverless':
         specifier: ^1.0.0
         version: 1.0.0
@@ -41,16 +42,21 @@ importers:
       drizzle-orm:
         specifier: ^0.44.1
         version: 0.44.1(@neondatabase/serverless@1.0.0)(@types/pg@8.15.4)
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
       hono:
         specifier: ^4.7.10
         version: 4.7.10
     devDependencies:
+<<<<<<< HEAD
       drizzle-kit:
         specifier: ^0.31.1
         version: 0.31.1
       tsx:
         specifier: ^4.19.4
         version: 4.19.4
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
       wrangler:
         specifier: ^4.4.0
         version: 4.18.0
@@ -310,6 +316,7 @@ packages:
     resolution: {integrity: sha512-Y6+WUMsTFWE5jb20IFP4YGa5IrGY/+a/FbOSjDF/wz9gepU2hwCYSXRHP/vPwBvwcY3SVMASt4yXxbXNXigmZQ==}
     engines: {node: '>=18'}
 
+<<<<<<< HEAD
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
@@ -324,6 +331,11 @@ packages:
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
     deprecated: 'Merged into tsx: https://tsx.is'
 
+=======
+  '@emnapi/runtime@1.4.3':
+    resolution: {integrity: sha512-pBPWdu6MLKROBX05wSNKcNb++m5Er+KQ9QkB+WVM+pW2Kx9hoSrVTnu3BdkI5eBLZoKu/J6mW/B6i6bJB2ytXQ==}
+
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
   '@esbuild/aix-ppc64@0.20.2':
     resolution: {integrity: sha512-D+EBOJHXdNZcLJRBkhENNG8Wji2kgc9AZ9KiPr1JuZjsNtyHzrsfLRrY0tk2H2aoFu6RANO1y1iPPUCDYWkb5g==}
     engines: {node: '>=12'}
@@ -4673,10 +4685,13 @@ packages:
       utf-8-validate:
         optional: true
 
+<<<<<<< HEAD
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
 
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
@@ -4922,13 +4937,17 @@ snapshots:
       gonzales-pe: 4.3.0
       node-source-walk: 7.0.1
 
+<<<<<<< HEAD
   '@drizzle-team/brocli@0.10.2': {}
 
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
   '@emnapi/runtime@1.4.3':
     dependencies:
       tslib: 2.8.1
     optional: true
 
+<<<<<<< HEAD
   '@esbuild-kit/core-utils@3.3.2':
     dependencies:
       esbuild: 0.18.20
@@ -4939,6 +4958,8 @@ snapshots:
       '@esbuild-kit/core-utils': 3.3.2
       get-tsconfig: 4.10.1
 
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
   '@esbuild/aix-ppc64@0.20.2':
     optional: true
 
@@ -9548,8 +9569,11 @@ snapshots:
 
   ws@8.18.0: {}
 
+<<<<<<< HEAD
   xtend@4.0.2: {}
 
+=======
+>>>>>>> 1bbb5ecfc1768f42dc8a6bfe560df0da2eb69950
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
