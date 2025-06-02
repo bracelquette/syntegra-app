@@ -18,6 +18,11 @@ import {
   changePasswordHandler,
 } from "./auth.handlers";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
+import {
+  loginRateLimit,
+  generalApiRateLimit,
+  passwordChangeRateLimit,
+} from "../../middleware/rateLimiter";
 
 const authRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -26,6 +31,7 @@ const authRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 // Admin Login Endpoint
 authRoutes.post(
   "/admin/login",
+  loginRateLimit, // 10 attempts per 15 minutes
   zValidator("json", AdminLoginRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -47,6 +53,7 @@ authRoutes.post(
 // Participant Login Endpoint
 authRoutes.post(
   "/participant/login",
+  loginRateLimit, // 10 attempts per 15 minutes
   zValidator("json", ParticipantLoginRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -68,6 +75,7 @@ authRoutes.post(
 // Refresh Token Endpoint
 authRoutes.post(
   "/refresh",
+  generalApiRateLimit, // General rate limiting
   zValidator("json", RefreshTokenRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -89,11 +97,17 @@ authRoutes.post(
 // ==================== PROTECTED ROUTES (AUTH REQUIRED) ====================
 
 // Get Current User Profile
-authRoutes.get("/me", authenticateUser, getProfileHandler);
+authRoutes.get(
+  "/me",
+  generalApiRateLimit, // General rate limiting
+  authenticateUser,
+  getProfileHandler
+);
 
 // Logout (current session)
 authRoutes.post(
   "/logout",
+  generalApiRateLimit, // General rate limiting
   authenticateUser,
   zValidator("json", LogoutRequestSchema.optional(), (result, c) => {
     if (!result.success) {
@@ -116,6 +130,7 @@ authRoutes.post(
 // Change Password (Admin only)
 authRoutes.put(
   "/change-password",
+  passwordChangeRateLimit, // 3 changes per hour
   authenticateUser,
   requireAdmin,
   zValidator("json", ChangePasswordRequestSchema, (result, c) => {
@@ -151,6 +166,11 @@ authRoutes.get("/health", (c) => {
       profile: "GET /auth/me",
       logout: "POST /auth/logout",
       change_password: "PUT /auth/change-password",
+    },
+    rate_limits: {
+      login: "10 attempts per 15 minutes",
+      password_change: "3 changes per hour",
+      general_api: "100 requests per 15 minutes",
     },
   });
 });

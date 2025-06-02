@@ -32,26 +32,92 @@ export async function createUserHandler(
       return c.json(errorResponse, 503);
     }
 
-    // Get validated data from request (sudah divalidasi di middleware)
+    // Get validated data from request
     const data = (await c.req.json()) as CreateUserRequest & {
       password?: string;
     };
+
+    // Check if user is authenticated (admin) or self-registering
+    const auth = c.get("auth");
+    const isAdminCreation = auth && auth.user.role === "admin";
+    const isSelfRegistration = !auth;
 
     // Get database connection
     const env = getEnv(c);
     const db = getDbFromEnv(c.env);
 
-    // Validate password requirement for admin users
-    if (data.role === "admin") {
-      if (!data.password) {
+    // Validation logic based on creation type
+    if (isAdminCreation) {
+      // Admin creating user - can create both admin and participant
+      console.log(
+        `Admin ${auth.user.email} creating user with role: ${data.role}`
+      );
+
+      if (data.role === "admin") {
+        // Admin creating another admin - password required
+        if (!data.password) {
+          const errorResponse: ErrorResponse = {
+            success: false,
+            message: "Password is required for admin users",
+            errors: [
+              {
+                field: "password",
+                message: "Admin users must have a password",
+                code: "PASSWORD_REQUIRED",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 400);
+        }
+
+        // Validate password strength
+        const passwordRegex =
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+        if (data.password.length < 8 || !passwordRegex.test(data.password)) {
+          const errorResponse: ErrorResponse = {
+            success: false,
+            message: "Password does not meet requirements",
+            errors: [
+              {
+                field: "password",
+                message:
+                  "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+                code: "PASSWORD_TOO_WEAK",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 400);
+        }
+      } else if (data.password) {
+        // Admin creating participant with password - not allowed
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Password is required for admin users",
+          message: "Participants cannot have passwords",
           errors: [
             {
               field: "password",
-              message: "Admin users must have a password",
-              code: "PASSWORD_REQUIRED",
+              message:
+                "Participant users authenticate using NIK and email only",
+              code: "PASSWORD_NOT_ALLOWED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+    } else if (isSelfRegistration) {
+      // Self-registration - only allow participant role
+      if (data.role === "admin") {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Cannot self-register as admin",
+          errors: [
+            {
+              field: "role",
+              message: "Self-registration is only allowed for participant role",
+              code: "INVALID_ROLE_FOR_SELF_REGISTRATION",
             },
           ],
           timestamp: new Date().toISOString(),
@@ -59,40 +125,25 @@ export async function createUserHandler(
         return c.json(errorResponse, 400);
       }
 
-      // Validate password strength for admin
-      const passwordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-      if (data.password.length < 8 || !passwordRegex.test(data.password)) {
+      if (data.password) {
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Password does not meet requirements",
+          message: "Password not allowed for participant registration",
           errors: [
             {
               field: "password",
-              message:
-                "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
-              code: "PASSWORD_TOO_WEAK",
+              message: "Participants authenticate using NIK and email only",
+              code: "PASSWORD_NOT_ALLOWED",
             },
           ],
           timestamp: new Date().toISOString(),
         };
         return c.json(errorResponse, 400);
       }
-    } else if (data.password) {
-      // Participant shouldn't have password
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Participants cannot have passwords",
-        errors: [
-          {
-            field: "password",
-            message: "Participant users authenticate using NIK and email only",
-            code: "PASSWORD_NOT_ALLOWED",
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
+
+      // Force role to participant for self-registration
+      data.role = "participant";
+      console.log(`Self-registration for participant: ${data.email}`);
     }
 
     // Check if NIK or email already exists
@@ -122,7 +173,7 @@ export async function createUserHandler(
       return c.json(errorResponse, 409);
     }
 
-    // Hash password if provided (for admin users)
+    // Hash password if provided (for admin users only)
     let hashedPassword: string | null = null;
     if (data.password && data.role === "admin") {
       hashedPassword = await hashPassword(data.password);
@@ -148,8 +199,8 @@ export async function createUserHandler(
       village: data.village || null,
       postal_code: data.postal_code || null,
       profile_picture_url: data.profile_picture_url || null,
-      created_by: data.created_by || null,
-      updated_by: data.created_by || null,
+      created_by: isAdminCreation ? auth.user.id : null,
+      updated_by: isAdminCreation ? auth.user.id : null,
       is_active: true,
       email_verified: data.role === "admin", // Admin accounts are pre-verified
       login_attempts: 0,
@@ -195,9 +246,12 @@ export async function createUserHandler(
       updated_by: newUser.updated_by,
     };
 
+    const creationType = isAdminCreation
+      ? "Admin creation"
+      : "Self-registration";
     const response: CreateUserResponse = {
       success: true,
-      message: `${data.role === "admin" ? "Admin" : "Participant"} user created successfully`,
+      message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully`,
       data: responseData,
       timestamp: new Date().toISOString(),
     };

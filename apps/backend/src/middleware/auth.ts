@@ -232,7 +232,7 @@ export function requireRole(...allowedRoles: ("admin" | "participant")[]) {
 }
 
 /**
- * Middleware khusus untuk admin only
+ * Middleware khusus untuk admin only - PARTICIPANTS WILL GET 403 FORBIDDEN
  */
 export const requireAdmin = requireRole("admin");
 

@@ -15,44 +15,29 @@ import {
   requireRole,
   optionalAuth,
 } from "../../middleware/auth";
+import {
+  userRegistrationRateLimit,
+  generalApiRateLimit,
+  loginRateLimit,
+  passwordChangeRateLimit,
+} from "../../middleware/rateLimiter";
 
 const userRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
 // ==================== PUBLIC ROUTES ====================
 
 // Get User Schema Endpoint (public untuk dokumentasi)
-userRoutes.get("/schema", getUserSchemaHandler);
-
-// ==================== PROTECTED ROUTES ====================
-
-// Get All Users Endpoint (Admin only atau dengan optional auth untuk filtering)
 userRoutes.get(
-  "/",
-  authenticateUser,
-  requireAdmin, // Only admin can list all users
-  zValidator("query", GetUsersRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Invalid query parameters",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  getUsersListHandler
+  "/schema",
+  generalApiRateLimit, // General rate limiting
+  getUserSchemaHandler
 );
 
-// Create User Endpoint (Admin only)
+// Create User Endpoint (PUBLIC - untuk self-registration participant & admin creation)
 userRoutes.post(
   "/",
-  authenticateUser,
-  requireAdmin, // Only admin can create users
+  userRegistrationRateLimit, // 5 registrations per hour per IP
+  optionalAuth, // Optional auth to detect if admin is creating user
   zValidator("json", CreateUserRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -69,6 +54,32 @@ userRoutes.post(
     }
   }),
   createUserHandler
+);
+
+// ==================== PROTECTED ROUTES ====================
+
+// Get All Users Endpoint (ADMIN ONLY - Participants NOT allowed)
+userRoutes.get(
+  "/",
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
+  requireAdmin, // Second: Verify user is admin (participants will get 403 Forbidden)
+  zValidator("query", GetUsersRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Invalid query parameters",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getUsersListHandler
 );
 
 // ==================== INDIVIDUAL USER ROUTES ====================
