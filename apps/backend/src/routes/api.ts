@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
-import { userRoutes } from "./users";
 import { getEnv, type CloudflareBindings } from "../lib/env";
 
 const api = new Hono<{ Bindings: CloudflareBindings }>();
@@ -49,7 +48,7 @@ api.get("/health", (c) => {
 });
 
 // API versioning and routes
-api.route("/api/v1", userRoutes);
+// api.route("/api/v1", userRoutes);
 
 // 404 handler for API routes
 api.notFound((c) => {
