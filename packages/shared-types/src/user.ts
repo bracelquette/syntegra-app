@@ -55,6 +55,47 @@ export const CreateUserRequestSchema = z.object({
   created_by: z.string().uuid("Invalid UUID format").optional(),
 });
 
+// Get Users Request Schema (Query Parameters)
+export const GetUsersRequestSchema = z.object({
+  // Pagination
+  page: z.coerce.number().min(1, "Page must be at least 1").default(1),
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100, "Limit must be between 1 and 100")
+    .default(10),
+
+  // Search
+  search: z.string().optional(),
+
+  // Filters
+  role: RoleEnum.optional(),
+  gender: GenderEnum.optional(),
+  religion: ReligionEnum.optional(),
+  education: EducationEnum.optional(),
+  is_active: z.coerce.boolean().optional(),
+  province: z.string().optional(),
+  regency: z.string().optional(),
+
+  // Date filters
+  created_from: z.string().datetime().optional(),
+  created_to: z.string().datetime().optional(),
+
+  // Sorting
+  sort_by: z
+    .enum([
+      "name",
+      "email",
+      "created_at",
+      "updated_at",
+      "nik",
+      "role",
+      "birth_date",
+    ])
+    .default("created_at"),
+  sort_order: z.enum(["asc", "desc"]).default("desc"),
+});
+
 // ==================== RESPONSE SCHEMAS ====================
 export const UserDataSchema = z.object({
   id: z.string().uuid(),
@@ -89,6 +130,25 @@ export const CreateUserResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+// Pagination Meta Schema
+export const PaginationMetaSchema = z.object({
+  current_page: z.number(),
+  per_page: z.number(),
+  total: z.number(),
+  total_pages: z.number(),
+  has_next_page: z.boolean(),
+  has_prev_page: z.boolean(),
+});
+
+// Get Users Response Schema
+export const GetUsersResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(UserDataSchema),
+  meta: PaginationMetaSchema,
+  timestamp: z.string(),
+});
+
 export const ErrorDetailSchema = z.object({
   field: z.string().optional(),
   message: z.string(),
@@ -110,6 +170,9 @@ export type Education = z.infer<typeof EducationEnum>;
 
 export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>;
 export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>;
+export type GetUsersRequest = z.infer<typeof GetUsersRequestSchema>;
+export type GetUsersResponse = z.infer<typeof GetUsersResponseSchema>;
+export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export type UserData = z.infer<typeof UserDataSchema>;
 export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;

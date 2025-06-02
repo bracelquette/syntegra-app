@@ -1,11 +1,37 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type CloudflareBindings } from "../../lib/env";
-import { CreateUserRequestSchema, type ErrorResponse } from "shared-types";
+import {
+  CreateUserRequestSchema,
+  GetUsersRequestSchema,
+  type ErrorResponse,
+} from "shared-types";
 import { createUserHandler } from "./user.create";
+import { getUsersListHandler } from "./user.list";
 import { getUserSchemaHandler } from "./user.schema";
 
 const userRoutes = new Hono<{ Bindings: CloudflareBindings }>();
+
+// ==================== GET ALL USERS ENDPOINT ====================
+userRoutes.get(
+  "/",
+  zValidator("query", GetUsersRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Invalid query parameters",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getUsersListHandler
+);
 
 // ==================== CREATE USER ENDPOINT ====================
 userRoutes.post(
