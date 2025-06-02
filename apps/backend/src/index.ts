@@ -5,7 +5,7 @@ import type { CloudflareBindings } from "./lib/env";
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 // Mount API routes
-app.route("/", api);
+app.route("/api/v1", api);
 
 // Root endpoint
 app.get("/", (c) => {

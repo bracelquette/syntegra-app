@@ -5,6 +5,11 @@ import { validateEnv, type CloudflareBindings } from "@/lib/env";
 
 // Function to create database connection for Cloudflare Workers
 export function createDatabase(databaseUrl: string) {
+  if (!databaseUrl || databaseUrl.trim() === "") {
+    throw new Error(
+      "DATABASE_URL is required but not provided. Please configure your database connection string."
+    );
+  }
   const sql = neon(databaseUrl);
   return drizzle(sql, { schema });
 }
@@ -23,7 +28,7 @@ export function getDb(): ReturnType<typeof createDatabase> {
   } as CloudflareBindings);
 
   if (!db) {
-    db = createDatabase(env.DATABASE_URL);
+    db = createDatabase(env.DATABASE_URL || "");
   }
   return db;
 }
@@ -33,7 +38,24 @@ export function getDbFromEnv(
   env: CloudflareBindings
 ): ReturnType<typeof createDatabase> {
   const validatedEnv = validateEnv(env);
+  if (!validatedEnv.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL is not configured. Please set your Neon database connection string in wrangler.jsonc or environment variables."
+    );
+  }
   return createDatabase(validatedEnv.DATABASE_URL);
+}
+
+// Helper function to check if database is configured
+export function isDatabaseConfigured(env: CloudflareBindings): boolean {
+  try {
+    const validatedEnv = validateEnv(env);
+    return Boolean(
+      validatedEnv.DATABASE_URL && validatedEnv.DATABASE_URL.trim() !== ""
+    );
+  } catch {
+    return false;
+  }
 }
 
 // Export schema for use in other parts of the application

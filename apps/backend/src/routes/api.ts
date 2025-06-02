@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { getEnv, type CloudflareBindings } from "../lib/env";
+import { userRoutes } from "./users";
 
 const api = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -15,13 +16,26 @@ api.use(
   "*",
   cors({
     origin: (origin, c) => {
-      const env = getEnv(c);
-      const allowedOrigins = [
-        env.FRONTEND_URL,
-        env.CORS_ORIGIN,
-        "http://localhost:3000", // Development
-        "http://localhost:5173", // Vite dev server
-      ].filter(Boolean);
+      // Handle environment variables gracefully
+      let allowedOrigins: string[];
+      try {
+        const env = getEnv(c);
+        allowedOrigins = [
+          env.FRONTEND_URL,
+          env.CORS_ORIGIN,
+          "http://localhost:3000", // Development
+          "http://localhost:5173", // Vite dev server
+        ].filter((url): url is string => Boolean(url));
+      } catch (error) {
+        // Fallback for development when env vars are not configured
+        console.warn(
+          "Environment variables not configured, using development defaults"
+        );
+        allowedOrigins = [
+          "http://localhost:3000", // Development
+          "http://localhost:5173", // Vite dev server
+        ];
+      }
 
       return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
     },
@@ -37,18 +51,8 @@ api.use(
   })
 );
 
-// Health check endpoint
-api.get("/health", (c) => {
-  return c.json({
-    success: true,
-    message: "API is healthy",
-    timestamp: new Date().toISOString(),
-    environment: c.env.NODE_ENV || "development",
-  });
-});
-
 // API versioning and routes
-// api.route("/api/v1", userRoutes);
+api.route("/users", userRoutes);
 
 // 404 handler for API routes
 api.notFound((c) => {

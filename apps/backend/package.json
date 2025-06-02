@@ -16,6 +16,7 @@
     "drizzle-orm": "^0.44.1",
     "drizzle-zod": "^0.8.2",
     "hono": "^4.7.10",
+    "shared-types": "workspace:*",
     "zod": "^3.25.46"
   },
   "devDependencies": {

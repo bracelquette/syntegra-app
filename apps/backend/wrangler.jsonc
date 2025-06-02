@@ -4,8 +4,21 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-05-29",
   "vars": {
-    // Add your environment variables here
-    // "DATABASE_URL": "your-neon-database-url"
+    // REQUIRED: Get your Neon database URL from https://console.neon.tech/
+    // Example: "postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/database?sslmode=require"
+    "DATABASE_URL": "postgresql://neondb_owner:npg_RxoQG17vhUsd@ep-calm-dawn-a1cai9ra-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+
+    // REQUIRED: JWT secret for authentication
+    "JWT_SECRET": "your-jwt-secret-key",
+
+    // REQUIRED: Frontend URL for CORS
+    "FRONTEND_URL": "http://localhost:3000",
+
+    // OPTIONAL: Additional CORS origin
+    "CORS_ORIGIN": "http://localhost:5173",
+
+    // Environment
+    "NODE_ENV": "development",
   },
   // "compatibility_flags": [
   //   "nodejs_compat"

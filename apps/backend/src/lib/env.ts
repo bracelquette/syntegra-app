@@ -2,9 +2,9 @@ import { z } from "zod";
 
 // Schema untuk environment variables
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1, "Database URL is required"),
-  JWT_SECRET: z.string().min(1, "JWT secret is required"),
-  FRONTEND_URL: z.string().url("Invalid frontend URL"),
+  DATABASE_URL: z.string().min(1, "Database URL is required").optional(),
+  JWT_SECRET: z.string().min(1, "JWT secret is required").optional(),
+  FRONTEND_URL: z.string().url("Invalid frontend URL").optional(),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -15,10 +15,10 @@ export type Env = z.infer<typeof envSchema>;
 
 // Cloudflare Workers Environment Bindings
 export interface CloudflareBindings {
-  DATABASE_URL: string;
-  JWT_SECRET: string;
-  FRONTEND_URL: string;
-  NODE_ENV: string;
+  DATABASE_URL?: string;
+  JWT_SECRET?: string;
+  FRONTEND_URL?: string;
+  NODE_ENV?: string;
   CORS_ORIGIN?: string;
 }
 
@@ -32,7 +32,20 @@ export function validateEnv(env: CloudflareBindings): Env {
   }
 }
 
-// Helper function untuk get environment
+// Helper function untuk get environment with defaults for development
 export function getEnv(c: any): Env {
-  return validateEnv(c.env);
+  const env = validateEnv(c.env || {});
+
+  // Provide development defaults if running in development
+  if (env.NODE_ENV === "development" || !env.NODE_ENV) {
+    return {
+      DATABASE_URL: env.DATABASE_URL || "",
+      JWT_SECRET: env.JWT_SECRET || "dev-secret-key",
+      FRONTEND_URL: env.FRONTEND_URL || "http://localhost:3000",
+      NODE_ENV: env.NODE_ENV || "development",
+      CORS_ORIGIN: env.CORS_ORIGIN,
+    };
+  }
+
+  return env;
 }

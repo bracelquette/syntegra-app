@@ -50,6 +50,9 @@ importers:
       hono:
         specifier: ^4.7.10
         version: 4.7.10
+      shared-types:
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       zod:
         specifier: ^3.25.46
         version: 3.25.46
