@@ -9,6 +9,7 @@ import {
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
 import { getUserSchemaHandler } from "./user.schema";
+import { getAdminStatusHandler } from "./user.status";
 import {
   authenticateUser,
   requireAdmin,
@@ -31,6 +32,13 @@ userRoutes.get(
   "/schema",
   generalApiRateLimit, // General rate limiting
   getUserSchemaHandler
+);
+
+// Get Admin Status Endpoint (public untuk bootstrap check)
+userRoutes.get(
+  "/admin-status",
+  generalApiRateLimit, // General rate limiting
+  getAdminStatusHandler
 );
 
 // Create User Endpoint (PUBLIC - untuk self-registration participant & admin creation)

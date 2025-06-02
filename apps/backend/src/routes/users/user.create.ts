@@ -37,17 +37,75 @@ export async function createUserHandler(
       password?: string;
     };
 
+    // Get database connection
+    const env = getEnv(c);
+    const db = getDbFromEnv(c.env);
+
     // Check if user is authenticated (admin) or self-registering
     const auth = c.get("auth");
     const isAdminCreation = auth && auth.user.role === "admin";
     const isSelfRegistration = !auth;
 
-    // Get database connection
-    const env = getEnv(c);
-    const db = getDbFromEnv(c.env);
+    // BOOTSTRAP CHECK: Allow first admin creation without authentication
+    let isBootstrapAdminCreation = false;
+    if (isSelfRegistration && data.role === "admin") {
+      // Check if any admin exists in the database
+      const [existingAdmin] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, "admin"))
+        .limit(1);
+
+      if (!existingAdmin) {
+        isBootstrapAdminCreation = true;
+        console.log("🚀 Bootstrap: Creating first admin user");
+      }
+    }
 
     // Validation logic based on creation type
-    if (isAdminCreation) {
+    if (isBootstrapAdminCreation) {
+      // First admin creation - special bootstrap case
+      console.log(`Bootstrap admin creation: ${data.email}`);
+
+      if (!data.password) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Password is required for bootstrap admin creation",
+          errors: [
+            {
+              field: "password",
+              message: "First admin user must have a password",
+              code: "PASSWORD_REQUIRED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+
+      // Validate password strength for bootstrap admin
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+      if (data.password.length < 8 || !passwordRegex.test(data.password)) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Bootstrap admin password does not meet requirements",
+          errors: [
+            {
+              field: "password",
+              message:
+                "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+              code: "PASSWORD_TOO_WEAK",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+
+      // Force role to admin for bootstrap
+      data.role = "admin";
+    } else if (isAdminCreation) {
       // Admin creating user - can create both admin and participant
       console.log(
         `Admin ${auth.user.email} creating user with role: ${data.role}`
@@ -108,16 +166,17 @@ export async function createUserHandler(
         return c.json(errorResponse, 400);
       }
     } else if (isSelfRegistration) {
-      // Self-registration - only allow participant role
-      if (data.role === "admin") {
+      // Self-registration - only allow participant role (unless bootstrap admin)
+      if (data.role === "admin" && !isBootstrapAdminCreation) {
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Cannot self-register as admin",
+          message: "Cannot self-register as admin - admin already exists",
           errors: [
             {
               field: "role",
-              message: "Self-registration is only allowed for participant role",
-              code: "INVALID_ROLE_FOR_SELF_REGISTRATION",
+              message:
+                "Self-registration as admin is only allowed when no admin exists in the system",
+              code: "ADMIN_ALREADY_EXISTS",
             },
           ],
           timestamp: new Date().toISOString(),
@@ -125,25 +184,27 @@ export async function createUserHandler(
         return c.json(errorResponse, 400);
       }
 
-      if (data.password) {
-        const errorResponse: ErrorResponse = {
-          success: false,
-          message: "Password not allowed for participant registration",
-          errors: [
-            {
-              field: "password",
-              message: "Participants authenticate using NIK and email only",
-              code: "PASSWORD_NOT_ALLOWED",
-            },
-          ],
-          timestamp: new Date().toISOString(),
-        };
-        return c.json(errorResponse, 400);
-      }
+      if (!isBootstrapAdminCreation) {
+        if (data.password) {
+          const errorResponse: ErrorResponse = {
+            success: false,
+            message: "Password not allowed for participant registration",
+            errors: [
+              {
+                field: "password",
+                message: "Participants authenticate using NIK and email only",
+                code: "PASSWORD_NOT_ALLOWED",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 400);
+        }
 
-      // Force role to participant for self-registration
-      data.role = "participant";
-      console.log(`Self-registration for participant: ${data.email}`);
+        // Force role to participant for self-registration
+        data.role = "participant";
+        console.log(`Self-registration for participant: ${data.email}`);
+      }
     }
 
     // Check if NIK or email already exists
@@ -246,9 +307,16 @@ export async function createUserHandler(
       updated_by: newUser.updated_by,
     };
 
-    const creationType = isAdminCreation
-      ? "Admin creation"
-      : "Self-registration";
+    // Determine creation type for response message
+    let creationType: string;
+    if (isBootstrapAdminCreation) {
+      creationType = "Bootstrap admin creation";
+    } else if (isAdminCreation) {
+      creationType = "Admin creation";
+    } else {
+      creationType = "Self-registration";
+    }
+
     const response: CreateUserResponse = {
       success: true,
       message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully`,
