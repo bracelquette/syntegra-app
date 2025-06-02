@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { eq, or } from "drizzle-orm";
 import { getDbFromEnv, users, isDatabaseConfigured } from "../../db";
 import { getEnv, type CloudflareBindings } from "../../lib/env";
+import { hashPassword, requiresPassword } from "../../lib/auth";
 import {
   type CreateUserRequest,
   type CreateUserResponse,
@@ -32,11 +33,67 @@ export async function createUserHandler(
     }
 
     // Get validated data from request (sudah divalidasi di middleware)
-    const data = (await c.req.json()) as CreateUserRequest;
+    const data = (await c.req.json()) as CreateUserRequest & {
+      password?: string;
+    };
 
     // Get database connection
     const env = getEnv(c);
     const db = getDbFromEnv(c.env);
+
+    // Validate password requirement for admin users
+    if (data.role === "admin") {
+      if (!data.password) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Password is required for admin users",
+          errors: [
+            {
+              field: "password",
+              message: "Admin users must have a password",
+              code: "PASSWORD_REQUIRED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+
+      // Validate password strength for admin
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+      if (data.password.length < 8 || !passwordRegex.test(data.password)) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Password does not meet requirements",
+          errors: [
+            {
+              field: "password",
+              message:
+                "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+              code: "PASSWORD_TOO_WEAK",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+    } else if (data.password) {
+      // Participant shouldn't have password
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Participants cannot have passwords",
+        errors: [
+          {
+            field: "password",
+            message: "Participant users authenticate using NIK and email only",
+            code: "PASSWORD_NOT_ALLOWED",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
 
     // Check if NIK or email already exists
     const existingUser = await db
@@ -65,12 +122,19 @@ export async function createUserHandler(
       return c.json(errorResponse, 409);
     }
 
+    // Hash password if provided (for admin users)
+    let hashedPassword: string | null = null;
+    if (data.password && data.role === "admin") {
+      hashedPassword = await hashPassword(data.password);
+    }
+
     // Prepare data for database insertion
-    const insertData: CreateUserDB = {
+    const insertData: CreateUserDB & { password?: string | null } = {
       nik: data.nik,
       name: data.name,
       role: data.role,
       email: data.email,
+      password: hashedPassword,
       gender: data.gender,
       phone: data.phone,
       birth_place: data.birth_place || null,
@@ -87,6 +151,8 @@ export async function createUserHandler(
       created_by: data.created_by || null,
       updated_by: data.created_by || null,
       is_active: true,
+      email_verified: data.role === "admin", // Admin accounts are pre-verified
+      login_attempts: 0,
     };
 
     // Insert user into database
@@ -101,35 +167,38 @@ export async function createUserHandler(
       return c.json(errorResponse, 500);
     }
 
-    // Prepare success response
+    // Prepare success response (exclude sensitive data)
+    const responseData = {
+      id: newUser.id,
+      nik: newUser.nik,
+      name: newUser.name,
+      role: newUser.role,
+      email: newUser.email,
+      gender: newUser.gender,
+      phone: newUser.phone,
+      birth_place: newUser.birth_place,
+      birth_date: newUser.birth_date,
+      religion: newUser.religion,
+      education: newUser.education,
+      address: newUser.address,
+      province: newUser.province,
+      regency: newUser.regency,
+      district: newUser.district,
+      village: newUser.village,
+      postal_code: newUser.postal_code,
+      profile_picture_url: newUser.profile_picture_url,
+      is_active: newUser.is_active ?? true,
+      email_verified: newUser.email_verified ?? false,
+      created_at: newUser.created_at,
+      updated_at: newUser.updated_at,
+      created_by: newUser.created_by,
+      updated_by: newUser.updated_by,
+    };
+
     const response: CreateUserResponse = {
       success: true,
-      message: "User created successfully",
-      data: {
-        id: newUser.id,
-        nik: newUser.nik,
-        name: newUser.name,
-        role: newUser.role,
-        email: newUser.email,
-        gender: newUser.gender,
-        phone: newUser.phone,
-        birth_place: newUser.birth_place,
-        birth_date: newUser.birth_date,
-        religion: newUser.religion,
-        education: newUser.education,
-        address: newUser.address,
-        province: newUser.province,
-        regency: newUser.regency,
-        district: newUser.district,
-        village: newUser.village,
-        postal_code: newUser.postal_code,
-        profile_picture_url: newUser.profile_picture_url,
-        is_active: newUser.is_active ?? true,
-        created_at: newUser.created_at,
-        updated_at: newUser.updated_at,
-        created_by: newUser.created_by,
-        updated_by: newUser.updated_by,
-      },
+      message: `${data.role === "admin" ? "Admin" : "Participant"} user created successfully`,
+      data: responseData,
       timestamp: new Date().toISOString(),
     };
 
@@ -169,6 +238,19 @@ export async function createUserHandler(
           timestamp: new Date().toISOString(),
         };
         return c.json(errorResponse, 503);
+      }
+
+      // Handle password hashing errors
+      if (
+        error.message.includes("hash") ||
+        error.message.includes("password")
+      ) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Failed to process password",
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 500);
       }
     }
 

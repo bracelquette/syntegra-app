@@ -8,6 +8,20 @@
       "when": 1748840038051,
       "tag": "0000_true_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1748868638324,
+      "tag": "0001_talented_robbie_robertson",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748871354084,
+      "tag": "0002_steep_ironclad",
+      "breakpoints": true
     }
   ]
 }

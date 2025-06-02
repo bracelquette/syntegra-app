@@ -9,12 +9,27 @@ import {
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
 import { getUserSchemaHandler } from "./user.schema";
+import {
+  authenticateUser,
+  requireAdmin,
+  requireRole,
+  optionalAuth,
+} from "../../middleware/auth";
 
 const userRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
-// ==================== GET ALL USERS ENDPOINT ====================
+// ==================== PUBLIC ROUTES ====================
+
+// Get User Schema Endpoint (public untuk dokumentasi)
+userRoutes.get("/schema", getUserSchemaHandler);
+
+// ==================== PROTECTED ROUTES ====================
+
+// Get All Users Endpoint (Admin only atau dengan optional auth untuk filtering)
 userRoutes.get(
   "/",
+  authenticateUser,
+  requireAdmin, // Only admin can list all users
   zValidator("query", GetUsersRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -33,9 +48,11 @@ userRoutes.get(
   getUsersListHandler
 );
 
-// ==================== CREATE USER ENDPOINT ====================
+// Create User Endpoint (Admin only)
 userRoutes.post(
   "/",
+  authenticateUser,
+  requireAdmin, // Only admin can create users
   zValidator("json", CreateUserRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -54,8 +71,112 @@ userRoutes.post(
   createUserHandler
 );
 
-// ==================== GET USER SCHEMA ENDPOINT ====================
-userRoutes.get("/schema", getUserSchemaHandler);
+// ==================== INDIVIDUAL USER ROUTES ====================
+
+// Get Single User (Admin atau user sendiri)
+userRoutes.get(
+  "/:userId",
+  authenticateUser,
+  requireRole("admin", "participant"), // Both roles can access but with restrictions
+  async (c, next) => {
+    // Implementation untuk get single user akan dibuat terpisah
+    // Untuk sekarang return not implemented
+    return c.json(
+      {
+        success: false,
+        message: "Get single user not implemented yet",
+        timestamp: new Date().toISOString(),
+      },
+      501
+    );
+  }
+);
+
+// Update User (Admin atau user sendiri)
+userRoutes.put(
+  "/:userId",
+  authenticateUser,
+  requireRole("admin", "participant"), // Both roles can access but with restrictions
+  async (c, next) => {
+    // Implementation untuk update user akan dibuat terpisah
+    // Untuk sekarang return not implemented
+    return c.json(
+      {
+        success: false,
+        message: "Update user not implemented yet",
+        timestamp: new Date().toISOString(),
+      },
+      501
+    );
+  }
+);
+
+// Delete User (Admin only)
+userRoutes.delete(
+  "/:userId",
+  authenticateUser,
+  requireAdmin, // Only admin can delete users
+  async (c, next) => {
+    // Implementation untuk delete user akan dibuat terpisah
+    // Untuk sekarang return not implemented
+    return c.json(
+      {
+        success: false,
+        message: "Delete user not implemented yet",
+        timestamp: new Date().toISOString(),
+      },
+      501
+    );
+  }
+);
+
+// ==================== BULK OPERATIONS (Admin only) ====================
+
+// Bulk Create Users
+userRoutes.post("/bulk", authenticateUser, requireAdmin, async (c, next) => {
+  // Implementation untuk bulk create akan dibuat terpisah
+  return c.json(
+    {
+      success: false,
+      message: "Bulk create users not implemented yet",
+      timestamp: new Date().toISOString(),
+    },
+    501
+  );
+});
+
+// Bulk Update Users
+userRoutes.put("/bulk", authenticateUser, requireAdmin, async (c, next) => {
+  // Implementation untuk bulk update akan dibuat terpisah
+  return c.json(
+    {
+      success: false,
+      message: "Bulk update users not implemented yet",
+      timestamp: new Date().toISOString(),
+    },
+    501
+  );
+});
+
+// ==================== USER STATISTICS (Admin only) ====================
+
+// Get User Statistics
+userRoutes.get(
+  "/stats/summary",
+  authenticateUser,
+  requireAdmin,
+  async (c, next) => {
+    // Implementation untuk user statistics akan dibuat terpisah
+    return c.json(
+      {
+        success: false,
+        message: "User statistics not implemented yet",
+        timestamp: new Date().toISOString(),
+      },
+      501
+    );
+  }
+);
 
 // ==================== ERROR HANDLERS ====================
 userRoutes.onError((err, c) => {

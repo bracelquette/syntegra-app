@@ -105,7 +105,7 @@ export const categoryEnum = pgEnum("category", [
 
 // ==================== MAIN TABLES ====================
 
-// Users Table
+// Users Table with Authentication
 export const users = pgTable(
   "users",
   {
@@ -114,6 +114,20 @@ export const users = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     role: roleEnum("role").notNull().default("participant"),
     email: varchar("email", { length: 255 }).notNull().unique(),
+
+    // Authentication fields
+    password: varchar("password", { length: 255 }), // Nullable - only for admin users
+    last_login: timestamp("last_login"),
+    login_attempts: integer("login_attempts").default(0),
+    account_locked_until: timestamp("account_locked_until"),
+    email_verified: boolean("email_verified").default(false),
+    email_verification_token: varchar("email_verification_token", {
+      length: 255,
+    }),
+    password_reset_token: varchar("password_reset_token", { length: 255 }),
+    password_reset_expires: timestamp("password_reset_expires"),
+
+    // Profile fields
     gender: genderEnum("gender").notNull(),
     phone: varchar("phone", { length: 20 }).notNull(),
     birth_place: varchar("birth_place", { length: 100 }),
@@ -127,6 +141,8 @@ export const users = pgTable(
     village: varchar("village", { length: 100 }),
     postal_code: varchar("postal_code", { length: 10 }),
     profile_picture_url: varchar("profile_picture_url", { length: 500 }),
+
+    // System fields
     is_active: boolean("is_active").default(true),
     created_at: timestamp("created_at").defaultNow().notNull(),
     updated_at: timestamp("updated_at").defaultNow().notNull(),
@@ -137,6 +153,40 @@ export const users = pgTable(
     nikIdx: index("users_nik_idx").on(table.nik),
     emailIdx: index("users_email_idx").on(table.email),
     roleIdx: index("users_role_idx").on(table.role),
+    lastLoginIdx: index("users_last_login_idx").on(table.last_login),
+    emailVerificationIdx: index("users_email_verification_idx").on(
+      table.email_verification_token
+    ),
+    passwordResetIdx: index("users_password_reset_idx").on(
+      table.password_reset_token
+    ),
+  })
+);
+
+// Authentication Sessions Table
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    token: text("token").notNull().unique(),
+    refresh_token: text("refresh_token").notNull().unique(),
+    expires_at: timestamp("expires_at").notNull(),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    last_used: timestamp("last_used").defaultNow().notNull(),
+    ip_address: varchar("ip_address", { length: 45 }),
+    user_agent: text("user_agent"),
+    is_active: boolean("is_active").default(true),
+  },
+  (table) => ({
+    userIdIdx: index("sessions_user_id_idx").on(table.user_id),
+    tokenIdx: uniqueIndex("sessions_token_idx").on(table.token),
+    refreshTokenIdx: uniqueIndex("sessions_refresh_token_idx").on(
+      table.refresh_token
+    ),
+    expiresAtIdx: index("sessions_expires_at_idx").on(table.expires_at),
   })
 );
 
@@ -519,9 +569,17 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   testResults: many(testResults),
   sessionResults: many(sessionResults),
   sessionParticipants: many(sessionParticipants),
+  authSessions: many(authSessions),
   createdSessions: many(testSessions, { relationName: "createdBy" }),
   proctorSessions: many(testSessions, { relationName: "proctor" }),
   auditLogs: many(auditLogs),
+}));
+
+export const authSessionsRelations = relations(authSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [authSessions.user_id],
+    references: [users.id],
+  }),
 }));
 
 export const testsRelations = relations(tests, ({ many }) => ({
@@ -662,6 +720,8 @@ export const sessionParticipantsRelations = relations(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type AuthSession = typeof authSessions.$inferSelect;
+export type NewAuthSession = typeof authSessions.$inferInsert;
 export type Test = typeof tests.$inferSelect;
 export type NewTest = typeof tests.$inferInsert;
 export type Question = typeof questions.$inferSelect;

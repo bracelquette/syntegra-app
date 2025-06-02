@@ -24,36 +24,67 @@ export const EducationEnum = z.enum([
 ]);
 
 // ==================== REQUEST SCHEMAS ====================
-export const CreateUserRequestSchema = z.object({
-  nik: z
-    .string()
-    .min(16, "NIK must be exactly 16 characters")
-    .max(16, "NIK must be exactly 16 characters"),
-  name: z.string().min(1, "Name is required").max(255, "Name is too long"),
-  role: RoleEnum.default("participant"),
-  email: z.string().email("Invalid email format").max(255, "Email is too long"),
-  gender: GenderEnum,
-  phone: z
-    .string()
-    .min(1, "Phone is required")
-    .max(20, "Phone number is too long"),
-  birth_place: z.string().max(100, "Birth place is too long").optional(),
-  birth_date: z.string().datetime().optional(),
-  religion: ReligionEnum.optional(),
-  education: EducationEnum.optional(),
-  address: z.string().optional(),
-  province: z.string().max(100, "Province is too long").optional(),
-  regency: z.string().max(100, "Regency is too long").optional(),
-  district: z.string().max(100, "District is too long").optional(),
-  village: z.string().max(100, "Village is too long").optional(),
-  postal_code: z.string().max(10, "Postal code is too long").optional(),
-  profile_picture_url: z
-    .string()
-    .url("Invalid URL format")
-    .max(500, "URL is too long")
-    .optional(),
-  created_by: z.string().uuid("Invalid UUID format").optional(),
-});
+export const CreateUserRequestSchema = z
+  .object({
+    nik: z
+      .string()
+      .min(16, "NIK must be exactly 16 characters")
+      .max(16, "NIK must be exactly 16 characters"),
+    name: z.string().min(1, "Name is required").max(255, "Name is too long"),
+    role: RoleEnum.default("participant"),
+    email: z
+      .string()
+      .email("Invalid email format")
+      .max(255, "Email is too long"),
+    // Password only required for admin users
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+      )
+      .optional(),
+    gender: GenderEnum,
+    phone: z
+      .string()
+      .min(1, "Phone is required")
+      .max(20, "Phone number is too long"),
+    birth_place: z.string().max(100, "Birth place is too long").optional(),
+    birth_date: z.string().datetime().optional(),
+    religion: ReligionEnum.optional(),
+    education: EducationEnum.optional(),
+    address: z.string().optional(),
+    province: z.string().max(100, "Province is too long").optional(),
+    regency: z.string().max(100, "Regency is too long").optional(),
+    district: z.string().max(100, "District is too long").optional(),
+    village: z.string().max(100, "Village is too long").optional(),
+    postal_code: z.string().max(10, "Postal code is too long").optional(),
+    profile_picture_url: z
+      .string()
+      .url("Invalid URL format")
+      .max(500, "URL is too long")
+      .optional(),
+    created_by: z.string().uuid("Invalid UUID format").optional(),
+  })
+  .refine(
+    (data) => {
+      // Password is required for admin users
+      if (data.role === "admin" && !data.password) {
+        return false;
+      }
+      // Password should not be provided for participant users
+      if (data.role === "participant" && data.password) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "Password is required for admin users and should not be provided for participants",
+      path: ["password"],
+    }
+  );
 
 // Get Users Request Schema (Query Parameters)
 export const GetUsersRequestSchema = z.object({
@@ -117,6 +148,7 @@ export const UserDataSchema = z.object({
   postal_code: z.string().nullable(),
   profile_picture_url: z.string().nullable(),
   is_active: z.boolean(),
+  email_verified: z.boolean(),
   created_at: z.date(),
   updated_at: z.date(),
   created_by: z.string().uuid().nullable(),
@@ -183,6 +215,7 @@ export type CreateUserDB = {
   name: string;
   role: Role;
   email: string;
+  password?: string | null; // Only for admin users
   gender: Gender;
   phone: string;
   birth_place: string | null;
@@ -197,6 +230,8 @@ export type CreateUserDB = {
   postal_code: string | null;
   profile_picture_url: string | null;
   is_active: boolean;
+  email_verified: boolean;
+  login_attempts: number;
   created_by: string | null;
   updated_by: string | null;
 };
