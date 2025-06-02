@@ -9,6 +9,7 @@ This is the backend application for the Syntegra psychological testing system, b
 - 🔥 **Drizzle ORM** - Type-safe database operations
 - 📝 **TypeScript** - Full type safety
 - ⚡ **Hono** - Fast web framework
+- 🎯 **Import Aliases** - Clean and organized imports
 
 ## Database Schema
 
@@ -83,6 +84,35 @@ Update `wrangler.jsonc` with your environment variables:
 
 ## Usage
 
+### Import Aliases
+
+The project is configured with clean import aliases for better organization:
+
+```typescript
+// Database
+import { getDb, getDbFromEnv } from "@/db";
+import { users, tests, questions } from "@/db/schema";
+
+// Types (if you create them)
+import type { User, Test } from "@/types";
+
+// Utils (if you create them)
+import { validateEmail } from "@/utils/validation";
+
+// Services (if you create them)
+import { TestService } from "@/services/test";
+```
+
+### Available Import Aliases
+
+- `@/*` - Points to `src/*`
+- `@/db/*` - Points to `src/db/*`
+- `@/types/*` - Points to `src/types/*`
+- `@/utils/*` - Points to `src/utils/*`
+- `@/middleware/*` - Points to `src/middleware/*`
+- `@/routes/*` - Points to `src/routes/*`
+- `@/services/*` - Points to `src/services/*`
+
 ### Database Connection
 
 The application provides multiple ways to connect to the database:
@@ -90,7 +120,7 @@ The application provides multiple ways to connect to the database:
 #### For Local Development
 
 ```typescript
-import { getDb } from "./db";
+import { getDb } from "@/db";
 
 const db = getDb(); // Uses process.env.DATABASE_URL
 ```
@@ -98,7 +128,7 @@ const db = getDb(); // Uses process.env.DATABASE_URL
 #### For Cloudflare Workers
 
 ```typescript
-import { getDbFromEnv } from "./db";
+import { getDbFromEnv } from "@/db";
 
 // In your handler
 export default {
@@ -112,7 +142,8 @@ export default {
 ### Example Database Operations
 
 ```typescript
-import { getDb, users, tests } from "./db";
+import { getDb } from "@/db";
+import { users, tests } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const db = getDb();
@@ -159,7 +190,13 @@ src/
 ├── db/
 │   ├── index.ts          # Database connection setup
 │   └── schema.ts         # Database schema definitions
-├── example-usage.ts      # Usage examples
+├── example/
+│   └── usage.ts          # Usage examples with clean imports
+├── types/                # TypeScript type definitions
+├── utils/                # Utility functions
+├── middleware/           # Hono middleware
+├── routes/               # API routes
+├── services/             # Business logic services
 └── index.ts             # Application entry point
 ```
 
@@ -167,10 +204,11 @@ src/
 
 ### Enums
 
-- User roles (admin, psychologist, hr, participant)
+- User roles (admin, participant)
 - Gender, religion, education levels
 - Question types (multiple_choice, true_false, text, etc.)
 - Test and session statuses
+- Participant statuses (invited, registered, started, completed, no_show)
 
 ### Key Tables
 
@@ -180,6 +218,7 @@ src/
 - `test_sessions` - Session management
 - `test_attempts` - User attempts tracking
 - `test_results` - Detailed results storage
+- `session_participants` - Participant status tracking
 
 ### Relationships
 
@@ -193,6 +232,7 @@ src/
 2. **Production**: Use `getDbFromEnv(env)` in Workers
 3. **Migrations**: Always generate migrations for schema changes
 4. **Type Safety**: Full TypeScript support with inferred types
+5. **Clean Imports**: Use path aliases for better organization
 
 ## Deployment
 
