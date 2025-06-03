@@ -99,9 +99,6 @@ export async function authenticateUser(
       return c.json(errorResponse, 401);
     }
 
-    console.log("authHeader : ", authHeader.substring(7));
-    console.log("payload : ", payload);
-
     // Validate session in database
     const isValidSession = await validateSession(db, payload.session_id);
     if (!isValidSession) {
