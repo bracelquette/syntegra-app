@@ -162,23 +162,38 @@ export function parseCSVContentSmart(csvContent: string): CSVParseResult {
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = "";
-  let inQuotes = false;
+  let inDoubleQuotes = false;
+  let inSingleQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
 
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        // Escaped quote
+    if (char === '"' && !inSingleQuotes) {
+      if (inDoubleQuotes && line[i + 1] === '"') {
+        // Escaped double quote
         current += '"';
         i++; // Skip next quote
       } else {
-        // Toggle quote state
-        inQuotes = !inQuotes;
+        // Toggle double quote state
+        inDoubleQuotes = !inDoubleQuotes;
       }
-    } else if (char === "," && !inQuotes) {
+    } else if (char === "'" && !inDoubleQuotes) {
+      // Handle single quotes
+      if (inSingleQuotes && line[i + 1] === "'") {
+        // Escaped single quote
+        current += "'";
+        i++; // Skip next quote
+      } else {
+        // Toggle single quote state or include in content
+        if (current === "" || inSingleQuotes) {
+          inSingleQuotes = !inSingleQuotes;
+        } else {
+          current += char;
+        }
+      }
+    } else if (char === "," && !inDoubleQuotes && !inSingleQuotes) {
       // End of field
-      result.push(current);
+      result.push(current.trim());
       current = "";
     } else {
       current += char;
@@ -186,7 +201,7 @@ function parseCSVLine(line: string): string[] {
   }
 
   // Add last field
-  result.push(current);
+  result.push(current.trim());
 
   return result;
 }
@@ -394,16 +409,31 @@ function normalizeSyntegraReligion(value: any): string | undefined {
 
   const strValue = String(value).toLowerCase().trim();
 
-  if (["islam", "muslim"].includes(strValue)) return "islam";
+  if (["islam", "muslim", "ISLAM", "MUSLIM"].includes(strValue)) return "islam";
   if (
-    ["kristen", "christian", "katolik", "catholic", "katholik"].includes(
+    [
+      "kristen",
+      "christian",
+      "katolik",
+      "catholic",
+      "katholik",
+      "KRISTEN",
+      "CHRISTIAN",
+      "KATOLIK",
+      "CATHOLIC",
+      "KATHOLIK",
+    ].includes(strValue)
+  )
+    return "christian";
+  if (
+    ["budha", "buddha", "buddhist", "BUDHA", "BUDDHA", "BUDDHIST"].includes(
       strValue
     )
   )
-    return "christian";
-  if (["budha", "buddha", "buddhist"].includes(strValue)) return "buddhist";
-  if (["hindu"].includes(strValue)) return "hindu";
-  if (["konghucu", "confucian"].includes(strValue)) return "confucian";
+    return "buddha";
+  if (["hindu", "HINDU"].includes(strValue)) return "hindu";
+  if (["konghucu", "confucian", "KONGHUCU", "CONFUCIAN"].includes(strValue))
+    return "confucian";
 
   return "other";
 }
@@ -413,9 +443,8 @@ function normalizeSyntegraEducation(value: any): string | undefined {
 
   const strValue = String(value).toLowerCase().trim();
 
-  if (["sd", "sekolah dasar"].includes(strValue)) return "elementary";
-  if (["smp", "sekolah menengah pertama"].includes(strValue))
-    return "junior_high";
+  if (["sd", "sekolah dasar"].includes(strValue)) return "sd";
+  if (["smp", "sekolah menengah pertama"].includes(strValue)) return "smp";
   if (
     [
       "sma",
@@ -425,14 +454,11 @@ function normalizeSyntegraEducation(value: any): string | undefined {
       "sekolah menengah kejuruan",
     ].includes(strValue)
   )
-    return "senior_high";
-  if (["d1", "diploma 1"].includes(strValue)) return "diploma_1";
-  if (["d2", "diploma 2"].includes(strValue)) return "diploma_2";
-  if (["d3", "diploma 3"].includes(strValue)) return "diploma_3";
-  if (["d4", "diploma 4"].includes(strValue)) return "diploma_4";
-  if (["s1", "sarjana", "bachelor"].includes(strValue)) return "bachelor";
-  if (["s2", "magister", "master"].includes(strValue)) return "master";
-  if (["s3", "doktor", "doctor", "phd"].includes(strValue)) return "doctorate";
+    return "sma";
+  if (["d4", "diploma 4"].includes(strValue)) return "diploma";
+  if (["s1", "sarjana", "bachelor"].includes(strValue)) return "s1";
+  if (["s2", "magister", "master"].includes(strValue)) return "s2";
+  if (["s3", "doktor", "doctor", "phd"].includes(strValue)) return "s3";
 
   return "other";
 }

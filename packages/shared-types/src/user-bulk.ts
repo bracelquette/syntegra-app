@@ -18,11 +18,8 @@ export const BulkUserDataSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
   role: RoleEnum.default("participant"),
   email: z.string().email("Invalid email format").max(255, "Email is too long"),
-  gender: GenderEnum,
-  phone: z
-    .string()
-    .min(1, "Phone is required")
-    .max(20, "Phone number is too long"),
+  gender: GenderEnum.optional(),
+  phone: z.string().max(20, "Phone number is too long").optional(),
   birth_place: z.string().max(100, "Birth place is too long").optional(),
   birth_date: z.string().datetime().optional(),
   religion: ReligionEnum.optional(),
@@ -71,11 +68,6 @@ export const CSVColumnMappingSchema = z.object({
   religion: z.string().default("AGAMA"),
   education: z.string().default("PENDIDIKAN TERAKHIR"),
   address: z.string().default("ALAMAT KTP"),
-  province: z.string().default("PROVINSI"),
-  regency: z.string().default("KABUPATEN/KOTA"),
-  district: z.string().default("KECAMATAN"),
-  village: z.string().default("KELURAHAN/DESA"),
-  postal_code: z.string().default("KODE POS"),
 });
 
 // CSV file upload request
@@ -179,7 +171,7 @@ export const ReligionMappingSchema = z.object({
     .array(z.string())
     .default(["Katolik", "KATOLIK", "Kristen Katolik"]),
   hindu: z.array(z.string()).default(["Hindu", "HINDU"]),
-  buddha: z.array(z.string()).default(["Buddha", "BUDDHA", "Budha"]),
+  buddha: z.array(z.string()).default(["Buddha", "BUDDHA", "Budha", "BUDHA"]),
   konghucu: z.array(z.string()).default(["Konghucu", "KONGHUCU", "Kong Hu Cu"]),
   other: z.array(z.string()).default(["Lainnya", "Other", "LAINNYA"]),
 });

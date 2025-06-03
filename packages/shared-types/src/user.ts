@@ -45,11 +45,8 @@ export const CreateUserRequestSchema = z
         "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
       )
       .optional(),
-    gender: GenderEnum,
-    phone: z
-      .string()
-      .min(1, "Phone is required")
-      .max(20, "Phone number is too long"),
+    gender: GenderEnum.optional(),
+    phone: z.string().max(20, "Phone number is too long").optional(),
     birth_place: z.string().max(100, "Birth place is too long").optional(),
     birth_date: z.string().datetime().optional(),
     religion: ReligionEnum.optional(),
@@ -146,11 +143,7 @@ export const UpdateUserRequestSchema = z
       .max(255, "Email is too long")
       .optional(),
     gender: GenderEnum.optional(),
-    phone: z
-      .string()
-      .min(1, "Phone is required")
-      .max(20, "Phone number is too long")
-      .optional(),
+    phone: z.string().max(20, "Phone number is too long").optional(),
     birth_place: z.string().max(100, "Birth place is too long").optional(),
     birth_date: z.string().datetime().optional(),
     religion: ReligionEnum.optional(),
