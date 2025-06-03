@@ -10,6 +10,9 @@ export * from "./auth";
 // Export all test-related types and schemas
 export * from "./test";
 
+// Export all test-attempts related types and schemas
+export * from "./test-attempts";
+
 // Export all question-related types and schemas
 export * from "./question";
 

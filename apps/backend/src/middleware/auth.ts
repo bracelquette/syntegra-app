@@ -416,3 +416,52 @@ export function requireOwnershipOrAdmin(userIdParam: string = "userId") {
     return next();
   };
 }
+
+/**
+ * Middleware to ensure the authenticated user is a participant
+ * This should be used after authenticateUser middleware
+ */
+export async function requireParticipant(
+  c: Context<{ Bindings: CloudflareBindings; Variables: { user: any } }>,
+  next: Next
+) {
+  const user = c.var.user;
+
+  if (!user) {
+    return c.json(
+      {
+        success: false,
+        message: "Authentication required",
+        errors: [
+          {
+            field: "auth",
+            message: "User must be authenticated",
+            code: "UNAUTHORIZED",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+      401
+    );
+  }
+
+  if (user.role !== "participant") {
+    return c.json(
+      {
+        success: false,
+        message: "Participant access required",
+        errors: [
+          {
+            field: "user_role",
+            message: "Only participants can access this resource",
+            code: "FORBIDDEN",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+      403
+    );
+  }
+
+  await next();
+}

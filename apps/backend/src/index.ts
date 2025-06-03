@@ -102,6 +102,13 @@ app.get("/", (c) => {
           stats: "GET /api/v1/tests/:testId/questions/stats",
         },
       },
+      attempts: {
+        create: "POST /api/v1/attempts",
+        get: "GET /api/v1/attempts/:attemptId",
+        update: "PUT /api/v1/attempts/:attemptId",
+        finish: "POST /api/v1/attempts/:attemptId/finish",
+        statusOptions: "GET /api/v1/attempts/utils/status-options",
+      },
     },
   });
 });
