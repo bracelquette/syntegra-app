@@ -10,6 +10,7 @@ This is the backend application for the Syntegra psychological testing system, b
 - 📝 **TypeScript** - Full type safety
 - ⚡ **Hono** - Fast web framework
 - 🎯 **Import Aliases** - Clean and organized imports
+- 📊 **Bulk User Import** - Import users from CSV
 
 ## Database Schema
 
@@ -242,24 +243,207 @@ src/
 
 For more information, see the [Drizzle documentation](https://orm.drizzle.team/) and [Neon documentation](https://neon.tech/docs).
 
-```txt
-npm install
-npm run dev
+## CSV Bulk Import
+
+### Format CSV Syntegra
+
+Backend ini mendukung bulk import user dari file CSV dengan format yang sesuai dengan database karyawan Syntegra.
+
+#### Required Headers (Kolom Wajib)
+
+- `NIK KTP` - Nomor Induk Kependudukan (16 digit)
+- `NAMA` - Nama lengkap karyawan
+- `E-MAIL` - Email address
+- `SEX` - Jenis kelamin (L/P)
+- `NOMOR HP` - Nomor HP/telepon
+
+#### Optional Headers (Kolom Opsional)
+
+- `TEMPAT LAHIR` - Tempat lahir
+- `TANGGAL LAHIR` - Tanggal lahir (format DD/MM/YYYY)
+- `AGAMA` - Agama
+- `PENDIDIKAN TERAKHIR` - Tingkat pendidikan
+- `ALAMAT KTP` - Alamat lengkap
+
+#### Format File CSV
+
+```csv
+NO,ID KARYAWAN,NAMA,JABATAN,DIVISI,CABANG,KODE CABANG,JENIS KARYAWAN,TMK,SEX,NIK KTP,TEMPAT LAHIR,TANGGAL LAHIR,ALAMAT KTP,STATUS PERNIKAHAN,AGAMA,PENDIDIKAN TERAKHIR,NOMOR HP,NAMA IBU KANDUNG,NPWP,E-MAIL,BPJS KETENAGAKERJAAN,BPJS KESEHATAN,STATUS KARYAWAN,KONTRAK KERJA,HABIS KONTRAK,TANGGAL KELUAR,KET,TAKE HOME PAY
+1,O-31-010724-00001,JOHN DOE,STAFF,PERUSAHAAN,HEAD OFFICE,31,ORGANIK,01/07/2024,L,1234567890123456,JAKARTA,01/01/1990,JL. EXAMPLE NO. 1,K1,ISLAM,S1,081234567890,IBU DOE,123456789012345,john.doe@example.com,,,,AKTIF,,,,,
 ```
 
-```txt
-npm run deploy
+### API Endpoints
+
+#### 1. Validate CSV
+
+```
+POST /api/users/bulk/validate-csv
 ```
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+**Request Body:**
 
-```txt
-npm run cf-typegen
+```json
+{
+  "csv_content": "NO,ID KARYAWAN,NAMA...\n1,O-31-010724-00001,JOHN DOE...",
+  "file_name": "database_karyawan.csv",
+  "options": {
+    "skip_duplicates": false,
+    "validate_only": true
+  }
+}
 ```
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
+**Response:**
 
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>();
+```json
+{
+  "success": true,
+  "message": "Syntegra CSV file validated successfully",
+  "data": {
+    "file_info": {
+      "total_rows": 200,
+      "data_rows": 195,
+      "headers_found": ["NO", "NAMA", "NIK KTP", ...],
+      "header_row": 5,
+      "data_start_row": 6
+    },
+    "column_mapping": {
+      "nik": "NIK KTP",
+      "name": "NAMA",
+      "email": "E-MAIL",
+      "gender": "SEX",
+      "phone": "NOMOR HP"
+    },
+    "validation_summary": {
+      "valid_rows": 190,
+      "invalid_rows": 5,
+      "duplicate_niks": 0,
+      "duplicate_emails": 0
+    },
+    "preview_results": [...]
+  }
+}
+```
+
+#### 2. Create Users from CSV
+
+```
+POST /api/users/bulk/csv
+```
+
+**Request Body:**
+
+```json
+{
+  "csv_content": "NO,ID KARYAWAN,NAMA...\n1,O-31-010724-00001,JOHN DOE...",
+  "file_name": "database_karyawan.csv",
+  "options": {
+    "skip_duplicates": true,
+    "validate_only": false
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Bulk user creation from CSV completed. 190 users created, 5 failed, 0 skipped",
+  "data": {
+    "total_processed": 195,
+    "successful": 190,
+    "failed": 5,
+    "skipped": 0,
+    "results": [...],
+    "summary": {
+      "duplicates_found": 0,
+      "validation_errors": 5,
+      "database_errors": 0
+    }
+  }
+}
+```
+
+### Data Transformation
+
+#### Gender Mapping
+
+- `L`, `Laki`, `Laki-laki`, `Male`, `M` → `male`
+- `P`, `Perempuan`, `Female`, `F` → `female`
+
+#### Phone Number Normalization
+
+- Format Indonesia: `081234567890` → `+6281234567890`
+- International format: sudah ada `+` prefix akan dipertahankan
+
+#### Date Format
+
+- Indonesian format: `01/01/1990` → `1990-01-01T00:00:00.000Z`
+- ISO format: langsung dikonversi
+
+#### Religion Mapping
+
+- `Islam`, `Muslim` → `islam`
+- `Kristen`, `Christian`, `Katolik`, `Catholic` → `christian`
+- `Buddha`, `Budha`, `Buddhist` → `buddhist`
+- `Hindu` → `hindu`
+- `Konghucu`, `Confucian` → `confucian`
+- Lainnya → `other`
+
+#### Education Mapping
+
+- `SD`, `Sekolah Dasar` → `elementary`
+- `SMP`, `Sekolah Menengah Pertama` → `junior_high`
+- `SMA`, `SMK`, `SLTA` → `senior_high`
+- `D1`, `D2`, `D3`, `D4`, `Diploma` → `diploma_1/2/3/4`
+- `S1`, `Sarjana`, `Bachelor` → `bachelor`
+- `S2`, `Master`, `Magister` → `master`
+- `S3`, `Doktor`, `PhD` → `doctorate`
+
+### Error Handling
+
+API akan mengembalikan error yang detail untuk:
+
+- Missing required columns
+- Invalid data format
+- Duplicate NIK/email
+- Database constraints
+- File parsing errors
+
+### Authentication
+
+Semua bulk operations memerlukan:
+
+- Valid JWT token
+- Role `admin`
+
+### Rate Limiting
+
+- General API calls: Standard rate limit
+- Bulk operations: Khusus untuk admin only
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm dev
+
+# Run tests
+pnpm test
+
+# Deploy to Cloudflare Workers
+pnpm deploy
+```
+
+## Environment Variables
+
+```bash
+DATABASE_URL=postgresql://username:password@host:port/database
+JWT_SECRET=your-jwt-secret
+BCRYPT_ROUNDS=10
+NODE_ENV=development
 ```

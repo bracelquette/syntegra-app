@@ -8,6 +8,8 @@ import {
   UpdateUserRequestSchema,
   UpdateUserByIdRequestSchema,
   DeleteUserByIdRequestSchema,
+  CSVUploadRequestSchema,
+  BulkCreateUsersRequestSchema,
   type ErrorResponse,
 } from "shared-types";
 import { createUserHandler } from "./user.create";
@@ -23,6 +25,10 @@ import {
   requireRole,
   optionalAuth,
 } from "../../middleware/auth";
+import {
+  validateSyntegraCSVHandler,
+  createUsersFromCSVHandler,
+} from "./user.bulk.csv";
 import {
   userRegistrationRateLimit,
   generalApiRateLimit,
@@ -186,37 +192,96 @@ userRoutes.delete(
 
 // ==================== BULK OPERATIONS (Admin only) ====================
 
-// Bulk Create Users
-userRoutes.post("/bulk", authenticateUser, requireAdmin, async (c, next) => {
-  // Implementation untuk bulk create akan dibuat terpisah
-  return c.json(
-    {
-      success: false,
-      message: "Bulk create users not implemented yet",
-      timestamp: new Date().toISOString(),
-    },
-    501
-  );
-});
+// Bulk Validate CSV (Syntegra format)
+userRoutes.post(
+  "/bulk/validate-csv",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("json", CSVUploadRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "CSV validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  validateSyntegraCSVHandler
+);
 
-// Bulk Update Users
-userRoutes.put("/bulk", authenticateUser, requireAdmin, async (c, next) => {
-  // Implementation untuk bulk update akan dibuat terpisah
-  return c.json(
-    {
-      success: false,
-      message: "Bulk update users not implemented yet",
-      timestamp: new Date().toISOString(),
-    },
-    501
-  );
-});
+// Bulk Create Users from CSV (Syntegra format)
+userRoutes.post(
+  "/bulk/csv",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("json", CSVUploadRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "CSV validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  createUsersFromCSVHandler
+);
+
+// ==================== JSON BULK OPERATIONS ====================
+
+// Bulk Create Users from JSON
+userRoutes.post(
+  "/bulk/json",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("json", BulkCreateUsersRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  async (c) => {
+    // Placeholder implementation for JSON bulk import
+    return c.json(
+      {
+        success: false,
+        message: "JSON bulk import not implemented yet",
+        timestamp: new Date().toISOString(),
+      },
+      501
+    );
+  }
+);
 
 // ==================== USER STATISTICS (Admin only) ====================
 
 // Get User Statistics
 userRoutes.get(
   "/stats/summary",
+  generalApiRateLimit,
   authenticateUser,
   requireAdmin,
   async (c, next) => {
