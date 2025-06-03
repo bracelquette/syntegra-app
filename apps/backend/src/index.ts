@@ -67,7 +67,14 @@ app.get("/", (c) => {
         update: "PUT /api/v1/sessions/:id",
         delete: "DELETE /api/v1/sessions/:id",
         stats: "GET /api/v1/sessions/stats",
-        triggerStatusUpdate: "POST /api/v1/sessions/trigger-status-update",
+        participants: {
+          create: "POST /api/v1/sessions/:sessionId/participants",
+          bulk: "POST /api/v1/sessions/:sessionId/participants/bulk",
+          list: "GET /api/v1/sessions/:sessionId/participants",
+          update: "PUT /api/v1/sessions/:sessionId/participants/:participantId",
+          delete:
+            "DELETE /api/v1/sessions/:sessionId/participants/:participantId",
+        },
       },
       tests: {
         create: "POST /api/v1/tests",
