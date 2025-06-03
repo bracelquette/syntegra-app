@@ -43,6 +43,7 @@ app.get("/", (c) => {
         get: "GET /api/v1/tests/:id",
         update: "PUT /api/v1/tests/:id",
         delete: "DELETE /api/v1/tests/:id",
+        prerequisites: "GET /api/v1/tests/:id/prerequisites",
         schema: "GET /api/v1/tests/schema",
         analytics: "GET /api/v1/tests/:id/analytics",
         stats: "GET /api/v1/tests/stats/summary",

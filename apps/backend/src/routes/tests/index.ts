@@ -18,12 +18,11 @@ import { updateTestHandler } from "./test.update";
 import { deleteTestHandler } from "./test.delete";
 import { getCategoriesHandler } from "./test.categories";
 import { getModuleTypesHandler } from "./test.module-types";
+import { getTestPrerequisitesHandler } from "./test.prerequisites";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
 
 const testRoutes = new Hono<{ Bindings: CloudflareBindings }>();
-
-// ==================== PROTECTED ROUTES (Admin Only) ====================
 
 // ==================== CATEGORY & MODULE TYPE ROUTES (Admin only) ====================
 
@@ -206,27 +205,6 @@ testRoutes.get(
   }
 );
 
-// ==================== ERROR HANDLERS ====================
-testRoutes.onError((err, c) => {
-  console.error("Test routes error:", err);
-
-  const errorResponse: TestErrorResponse = {
-    success: false,
-    message: "Test route error",
-    ...(c.env.NODE_ENV === "development" && {
-      errors: [
-        {
-          message: err.message,
-          code: "ROUTE_ERROR",
-        },
-      ],
-    }),
-    timestamp: new Date().toISOString(),
-  };
-
-  return c.json(errorResponse, 500);
-});
-
 // ==================== BASIC CRUD ROUTES ====================
 
 // Get All Tests Endpoint (ADMIN ONLY)
@@ -301,6 +279,30 @@ testRoutes.get(
   getTestByIdHandler
 );
 
+// Get Test Prerequisites (Admin only)
+testRoutes.get(
+  "/:testId/prerequisites",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("param", GetTestByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getTestPrerequisitesHandler
+);
+
 // Update Test (Admin only)
 testRoutes.put(
   "/:testId",
@@ -363,5 +365,26 @@ testRoutes.delete(
   }),
   deleteTestHandler
 );
+
+// ==================== ERROR HANDLERS ====================
+testRoutes.onError((err, c) => {
+  console.error("Test routes error:", err);
+
+  const errorResponse: TestErrorResponse = {
+    success: false,
+    message: "Test route error",
+    ...(c.env.NODE_ENV === "development" && {
+      errors: [
+        {
+          message: err.message,
+          code: "ROUTE_ERROR",
+        },
+      ],
+    }),
+    timestamp: new Date().toISOString(),
+  };
+
+  return c.json(errorResponse, 500);
+});
 
 export { testRoutes };
