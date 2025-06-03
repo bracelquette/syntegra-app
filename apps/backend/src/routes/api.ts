@@ -5,6 +5,7 @@ import { prettyJSON } from "hono/pretty-json";
 import { getEnv, type CloudflareBindings } from "../lib/env";
 import { userRoutes } from "./users";
 import { authRoutes } from "./auth";
+import { testRoutes } from "./tests";
 
 const api = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -55,6 +56,7 @@ api.use(
 // API versioning and routes
 api.route("/auth", authRoutes);
 api.route("/users", userRoutes);
+api.route("/tests", testRoutes);
 
 // 404 handler for API routes
 api.notFound((c) => {

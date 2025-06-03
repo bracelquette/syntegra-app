@@ -1,38 +1,35 @@
 import { Context, Next } from "hono";
 import { eq } from "drizzle-orm";
+import { getDbFromEnv, users, isDatabaseConfigured } from "../db";
+import { getEnv, type CloudflareBindings } from "../lib/env";
 import {
   verifyToken,
   validateSession,
   updateSessionLastUsed,
   toAuthUserData,
 } from "../lib/auth";
-import { getDbFromEnv, users, isDatabaseConfigured } from "../db";
-import { getEnv, type CloudflareBindings } from "../lib/env";
-import {
-  type ErrorResponse,
-  type AuthContext,
-  type JWTPayload,
-  AUTH_ERROR_CODES,
-} from "shared-types";
+import { type ErrorResponse, type AuthUserData } from "shared-types";
 
-// Extend Hono Context untuk include auth data
+// Extend Hono context to include auth
 declare module "hono" {
   interface ContextVariableMap {
-    auth: AuthContext;
+    auth: {
+      user: AuthUserData;
+      sessionId: string;
+    };
   }
 }
 
-// ==================== AUTHENTICATION MIDDLEWARE ====================
-
 /**
- * Middleware untuk authenticate user berdasarkan JWT token
+ * Middleware to authenticate user via JWT token
+ * Sets auth context if valid, otherwise returns 401
  */
 export async function authenticateUser(
   c: Context<{ Bindings: CloudflareBindings }>,
   next: Next
 ) {
   try {
-    // Check database configuration
+    // Check if database is configured
     if (!isDatabaseConfigured(c.env)) {
       const errorResponse: ErrorResponse = {
         success: false,
@@ -40,7 +37,7 @@ export async function authenticateUser(
         errors: [
           {
             field: "database",
-            message: "DATABASE_URL is not configured",
+            message: "Authentication service unavailable",
             code: "DATABASE_NOT_CONFIGURED",
           },
         ],
@@ -49,9 +46,8 @@ export async function authenticateUser(
       return c.json(errorResponse, 503);
     }
 
-    // Get authorization header
+    // Get Authorization header
     const authHeader = c.req.header("Authorization");
-
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       const errorResponse: ErrorResponse = {
         success: false,
@@ -60,7 +56,7 @@ export async function authenticateUser(
           {
             field: "authorization",
             message: "Bearer token is required",
-            code: AUTH_ERROR_CODES.UNAUTHORIZED,
+            code: "MISSING_TOKEN",
           },
         ],
         timestamp: new Date().toISOString(),
@@ -69,29 +65,40 @@ export async function authenticateUser(
     }
 
     // Extract token
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
+    const token = authHeader.substring(7); // Remove "Bearer "
+    if (!token) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Invalid token format",
+        errors: [
+          {
+            field: "authorization",
+            message: "Token cannot be empty",
+            code: "EMPTY_TOKEN",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 401);
+    }
 
     // Get environment and database
     const env = getEnv(c);
     const db = getDbFromEnv(c.env);
 
-    if (!env.JWT_SECRET) {
-      throw new Error("JWT_SECRET not configured");
-    }
-
     // Verify JWT token
-    let payload: JWTPayload;
+    let decodedToken;
     try {
-      payload = verifyToken(token, env.JWT_SECRET);
+      decodedToken = verifyToken(token, env.JWT_SECRET || "dev-secret-key");
     } catch (error) {
       const errorResponse: ErrorResponse = {
         success: false,
-        message: "Invalid token",
+        message: "Invalid or expired token",
         errors: [
           {
-            field: "token",
-            message: "Token is invalid or expired",
-            code: AUTH_ERROR_CODES.INVALID_TOKEN,
+            field: "authorization",
+            message: "Token verification failed",
+            code: "INVALID_TOKEN",
           },
         ],
         timestamp: new Date().toISOString(),
@@ -99,29 +106,36 @@ export async function authenticateUser(
       return c.json(errorResponse, 401);
     }
 
-    // Validate session in database
-    const isValidSession = await validateSession(db, payload.session_id);
-    if (!isValidSession) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Session not found or expired",
-        errors: [
-          {
-            field: "session",
-            message: "Session is invalid or has expired",
-            code: AUTH_ERROR_CODES.SESSION_NOT_FOUND,
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 401);
+    // Validate session if session_id is present
+    if (decodedToken.session_id) {
+      const isValidSession = await validateSession(db, decodedToken.session_id);
+      if (!isValidSession) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Session expired or invalid",
+          errors: [
+            {
+              field: "session",
+              message: "Please login again",
+              code: "SESSION_EXPIRED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 401);
+      }
+
+      // Update session last used (non-blocking)
+      updateSessionLastUsed(db, decodedToken.session_id).catch((error) => {
+        console.warn("Failed to update session last used:", error);
+      });
     }
 
-    // Get user data from database
+    // Get user from database
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, payload.sub))
+      .where(eq(users.id, decodedToken.sub))
       .limit(1);
 
     if (!user) {
@@ -131,8 +145,8 @@ export async function authenticateUser(
         errors: [
           {
             field: "user",
-            message: "User associated with token not found",
-            code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+            message: "User associated with token does not exist",
+            code: "USER_NOT_FOUND",
           },
         ],
         timestamp: new Date().toISOString(),
@@ -144,29 +158,25 @@ export async function authenticateUser(
     if (!user.is_active) {
       const errorResponse: ErrorResponse = {
         success: false,
-        message: "Account is inactive",
+        message: "Account is deactivated",
         errors: [
           {
-            field: "account",
+            field: "user",
             message: "Your account has been deactivated",
-            code: AUTH_ERROR_CODES.ACCOUNT_INACTIVE,
+            code: "ACCOUNT_DEACTIVATED",
           },
         ],
         timestamp: new Date().toISOString(),
       };
-      return c.json(errorResponse, 401);
+      return c.json(errorResponse, 403);
     }
 
-    // Update session last used (non-blocking)
-    updateSessionLastUsed(db, payload.session_id).catch(console.error);
-
     // Set auth context
-    const authContext: AuthContext = {
+    c.set("auth", {
       user: toAuthUserData(user),
-      session_id: payload.session_id,
-    };
+      sessionId: decodedToken.session_id || "",
+    });
 
-    c.set("auth", authContext);
     await next();
   } catch (error) {
     console.error("Authentication middleware error:", error);
@@ -182,18 +192,144 @@ export async function authenticateUser(
       ],
       timestamp: new Date().toISOString(),
     };
-
     return c.json(errorResponse, 500);
   }
 }
 
-// ==================== AUTHORIZATION MIDDLEWARE ====================
+/**
+ * Optional authentication middleware
+ * Sets auth context if valid token is provided, but doesn't fail if no token
+ */
+export async function optionalAuth(
+  c: Context<{ Bindings: CloudflareBindings }>,
+  next: Next
+) {
+  try {
+    // Check if database is configured
+    if (!isDatabaseConfigured(c.env)) {
+      await next();
+      return;
+    }
+
+    // Get Authorization header
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      await next();
+      return;
+    }
+
+    // Extract token
+    const token = authHeader.substring(7);
+    if (!token) {
+      await next();
+      return;
+    }
+
+    // Get environment and database
+    const env = getEnv(c);
+    const db = getDbFromEnv(c.env);
+
+    // Verify JWT token
+    let decodedToken;
+    try {
+      decodedToken = verifyToken(token, env.JWT_SECRET || "dev-secret-key");
+    } catch (error) {
+      // Invalid token, but continue without auth
+      await next();
+      return;
+    }
+
+    // Validate session if session_id is present
+    if (decodedToken.session_id) {
+      const isValidSession = await validateSession(db, decodedToken.session_id);
+      if (!isValidSession) {
+        await next();
+        return;
+      }
+
+      // Update session last used (non-blocking)
+      updateSessionLastUsed(db, decodedToken.session_id).catch((error) => {
+        console.warn("Failed to update session last used:", error);
+      });
+    }
+
+    // Get user from database
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, decodedToken.sub))
+      .limit(1);
+
+    if (!user || !user.is_active) {
+      await next();
+      return;
+    }
+
+    // Set auth context
+    c.set("auth", {
+      user: toAuthUserData(user),
+      sessionId: decodedToken.session_id || "",
+    });
+
+    await next();
+  } catch (error) {
+    console.error("Optional auth middleware error:", error);
+    // Continue without auth on error
+    await next();
+  }
+}
 
 /**
- * Middleware untuk authorize berdasarkan role
+ * Middleware to require admin role
+ * Must be used after authenticateUser
+ */
+export function requireAdmin(
+  c: Context<{ Bindings: CloudflareBindings }>,
+  next: Next
+) {
+  const auth = c.get("auth");
+
+  if (!auth) {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      message: "Authentication required",
+      errors: [
+        {
+          field: "authorization",
+          message: "You must be authenticated to access this resource",
+          code: "AUTHENTICATION_REQUIRED",
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+    return c.json(errorResponse, 401);
+  }
+
+  if (auth.user.role !== "admin") {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      message: "Access denied",
+      errors: [
+        {
+          field: "authorization",
+          message: "Admin privileges required",
+          code: "INSUFFICIENT_PRIVILEGES",
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+    return c.json(errorResponse, 403);
+  }
+
+  return next();
+}
+
+/**
+ * Middleware to require specific roles
+ * Must be used after authenticateUser
  */
 export function requireRole(...allowedRoles: ("admin" | "participant")[]) {
-  return async (c: Context<{ Bindings: CloudflareBindings }>, next: Next) => {
+  return (c: Context<{ Bindings: CloudflareBindings }>, next: Next) => {
     const auth = c.get("auth");
 
     if (!auth) {
@@ -202,9 +338,9 @@ export function requireRole(...allowedRoles: ("admin" | "participant")[]) {
         message: "Authentication required",
         errors: [
           {
-            field: "authentication",
-            message: "User must be authenticated to access this resource",
-            code: AUTH_ERROR_CODES.UNAUTHORIZED,
+            field: "authorization",
+            message: "You must be authenticated to access this resource",
+            code: "AUTHENTICATION_REQUIRED",
           },
         ],
         timestamp: new Date().toISOString(),
@@ -215,12 +351,12 @@ export function requireRole(...allowedRoles: ("admin" | "participant")[]) {
     if (!allowedRoles.includes(auth.user.role)) {
       const errorResponse: ErrorResponse = {
         success: false,
-        message: "Insufficient permissions",
+        message: "Access denied",
         errors: [
           {
-            field: "role",
-            message: `Access denied. Required roles: ${allowedRoles.join(", ")}`,
-            code: AUTH_ERROR_CODES.FORBIDDEN,
+            field: "authorization",
+            message: `Required role: ${allowedRoles.join(" or ")}`,
+            code: "INSUFFICIENT_PRIVILEGES",
           },
         ],
         timestamp: new Date().toISOString(),
@@ -228,175 +364,55 @@ export function requireRole(...allowedRoles: ("admin" | "participant")[]) {
       return c.json(errorResponse, 403);
     }
 
-    await next();
+    return next();
   };
 }
 
 /**
- * Middleware khusus untuk admin only - PARTICIPANTS WILL GET 403 FORBIDDEN
+ * Middleware to allow user to access their own data or admin to access any data
+ * Must be used after authenticateUser
  */
-export const requireAdmin = requireRole("admin");
-
-/**
- * Middleware khusus untuk participant only
- */
-export const requireParticipant = requireRole("participant");
-
-/**
- * Middleware untuk resource yang bisa diakses admin atau owner
- */
-export function requireAdminOrOwner(
-  getUserIdFromParams: (c: Context) => string
-) {
-  return async (c: Context<{ Bindings: CloudflareBindings }>, next: Next) => {
+export function requireOwnershipOrAdmin(userIdParam: string = "userId") {
+  return (c: Context<{ Bindings: CloudflareBindings }>, next: Next) => {
     const auth = c.get("auth");
 
     if (!auth) {
       const errorResponse: ErrorResponse = {
         success: false,
         message: "Authentication required",
+        errors: [
+          {
+            field: "authorization",
+            message: "You must be authenticated to access this resource",
+            code: "AUTHENTICATION_REQUIRED",
+          },
+        ],
         timestamp: new Date().toISOString(),
       };
       return c.json(errorResponse, 401);
     }
 
-    // Admin bisa akses semua
-    if (auth.user.role === "admin") {
-      await next();
-      return;
+    const targetUserId = c.req.param(userIdParam);
+    const currentUserId = auth.user.id;
+    const isAdmin = auth.user.role === "admin";
+
+    // Admin can access any resource, users can only access their own
+    if (!isAdmin && targetUserId !== currentUserId) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Access denied",
+        errors: [
+          {
+            field: "authorization",
+            message: "You can only access your own data",
+            code: "INSUFFICIENT_PRIVILEGES",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 403);
     }
 
-    // User hanya bisa akses resource milik sendiri
-    const targetUserId = getUserIdFromParams(c);
-    if (auth.user.id === targetUserId) {
-      await next();
-      return;
-    }
-
-    const errorResponse: ErrorResponse = {
-      success: false,
-      message: "Access denied",
-      errors: [
-        {
-          field: "authorization",
-          message: "You can only access your own resources",
-          code: AUTH_ERROR_CODES.FORBIDDEN,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-    };
-    return c.json(errorResponse, 403);
+    return next();
   };
-}
-
-// ==================== OPTIONAL AUTHENTICATION ====================
-
-/**
- * Middleware untuk optional authentication
- * Jika token ada dan valid, set auth context
- * Jika tidak ada atau invalid, lanjut tanpa auth
- */
-export async function optionalAuth(
-  c: Context<{ Bindings: CloudflareBindings }>,
-  next: Next
-) {
-  try {
-    const authHeader = c.req.header("Authorization");
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      // No auth provided, continue without auth
-      await next();
-      return;
-    }
-
-    if (!isDatabaseConfigured(c.env)) {
-      // Database not configured, continue without auth
-      await next();
-      return;
-    }
-
-    const token = authHeader.substring(7);
-    const env = getEnv(c);
-    const db = getDbFromEnv(c.env);
-
-    if (!env.JWT_SECRET) {
-      await next();
-      return;
-    }
-
-    try {
-      const payload = verifyToken(token, env.JWT_SECRET);
-      const isValidSession = await validateSession(db, payload.session_id);
-
-      if (isValidSession) {
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, payload.sub))
-          .limit(1);
-
-        if (user && user.is_active) {
-          const authContext: AuthContext = {
-            user: toAuthUserData(user),
-            session_id: payload.session_id,
-          };
-          c.set("auth", authContext);
-
-          // Update session last used (non-blocking)
-          updateSessionLastUsed(db, payload.session_id).catch(console.error);
-        }
-      }
-    } catch (error) {
-      // Token invalid, continue without auth
-      console.warn("Optional auth failed:", error);
-    }
-
-    await next();
-  } catch (error) {
-    console.error("Optional auth middleware error:", error);
-    // Continue without auth on any error
-    await next();
-  }
-}
-
-// ==================== UTILITY FUNCTIONS ====================
-
-/**
- * Get current authenticated user
- */
-export function getCurrentUser(c: Context): AuthContext["user"] | null {
-  const auth = c.get("auth");
-  return auth?.user || null;
-}
-
-/**
- * Get current session ID
- */
-export function getCurrentSessionId(c: Context): string | null {
-  const auth = c.get("auth");
-  return auth?.session_id || null;
-}
-
-/**
- * Check if current user is admin
- */
-export function isCurrentUserAdmin(c: Context): boolean {
-  const user = getCurrentUser(c);
-  return user?.role === "admin";
-}
-
-/**
- * Check if current user is participant
- */
-export function isCurrentUserParticipant(c: Context): boolean {
-  const user = getCurrentUser(c);
-  return user?.role === "participant";
-}
-
-/**
- * Check if current user owns resource
- */
-export function isCurrentUserOwner(c: Context, userId: string): boolean {
-  const user = getCurrentUser(c);
-  return user?.id === userId;
 }
