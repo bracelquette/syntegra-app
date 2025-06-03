@@ -5,7 +5,7 @@ import { getEnv, type CloudflareBindings } from "../../lib/env";
 import {
   type CreateTestRequest,
   type CreateTestResponse,
-  type ErrorResponse,
+  type TestErrorResponse,
   type CreateTestDB,
   validateCategoryForModuleType,
   getDefaultTimeLimitByCategory,
@@ -18,7 +18,7 @@ export async function createTestHandler(
   try {
     // Check if database is configured first
     if (!isDatabaseConfigured(c.env)) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Database not configured",
         errors: [
@@ -44,7 +44,7 @@ export async function createTestHandler(
     // Get authenticated admin user
     const auth = c.get("auth");
     if (!auth || auth.user.role !== "admin") {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Access denied",
         errors: [
@@ -61,7 +61,7 @@ export async function createTestHandler(
 
     // Validate category matches module type
     if (!validateCategoryForModuleType(data.category, data.module_type)) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Invalid category for module type",
         errors: [
@@ -87,7 +87,7 @@ export async function createTestHandler(
       .limit(1);
 
     if (existingTest.length > 0) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Test with this name already exists",
         errors: [
@@ -105,15 +105,9 @@ export async function createTestHandler(
     // Validate prerequisites exist if provided
     if (data.test_prerequisites && data.test_prerequisites.length > 0) {
       const prerequisiteTests = await db
-        .select({ id: tests.id })
+        .select({ id: tests.id, status: tests.status })
         .from(tests)
-        .where(
-          and(
-            eq(tests.status, "active")
-            // Check if all prerequisite IDs exist
-            // Note: This is a simplified check. For production, you might want to use a more efficient query
-          )
-        );
+        .where(eq(tests.status, "active"));
 
       const existingPrerequisiteIds = prerequisiteTests.map((test) => test.id);
       const invalidPrerequisites = data.test_prerequisites.filter(
@@ -121,7 +115,7 @@ export async function createTestHandler(
       );
 
       if (invalidPrerequisites.length > 0) {
-        const errorResponse: ErrorResponse = {
+        const errorResponse: TestErrorResponse = {
           success: false,
           message: "Invalid prerequisite test IDs",
           errors: [
@@ -169,7 +163,7 @@ export async function createTestHandler(
       .returning();
 
     if (!newTest) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Failed to create test",
         timestamp: new Date().toISOString(),
@@ -187,9 +181,9 @@ export async function createTestHandler(
       time_limit: newTest.time_limit,
       icon_url: newTest.icon_url,
       card_color: newTest.card_color,
-      test_prerequisites: newTest.test_prerequisites,
+      test_prerequisites: newTest.test_prerequisites || [],
       display_order: newTest.display_order ?? 0,
-      subcategory: newTest.subcategory,
+      subcategory: newTest.subcategory || [],
       total_questions: newTest.total_questions ?? 0,
       passing_score: newTest.passing_score
         ? Number(newTest.passing_score)
@@ -224,7 +218,7 @@ export async function createTestHandler(
     if (error instanceof Error) {
       // Handle unique constraint violations
       if (error.message.includes("unique constraint")) {
-        const errorResponse: ErrorResponse = {
+        const errorResponse: TestErrorResponse = {
           success: false,
           message: "Test with this name already exists",
           errors: [
@@ -244,7 +238,7 @@ export async function createTestHandler(
         error.message.includes("database") ||
         error.message.includes("connection")
       ) {
-        const errorResponse: ErrorResponse = {
+        const errorResponse: TestErrorResponse = {
           success: false,
           message: "Database connection error",
           timestamp: new Date().toISOString(),
@@ -254,7 +248,7 @@ export async function createTestHandler(
 
       // Handle invalid JSON in prerequisite or subcategory fields
       if (error.message.includes("JSON") || error.message.includes("json")) {
-        const errorResponse: ErrorResponse = {
+        const errorResponse: TestErrorResponse = {
           success: false,
           message: "Invalid JSON data in request",
           errors: [
@@ -273,7 +267,7 @@ export async function createTestHandler(
         error.message.includes("foreign key") ||
         error.message.includes("constraint")
       ) {
-        const errorResponse: ErrorResponse = {
+        const errorResponse: TestErrorResponse = {
           success: false,
           message: "Invalid prerequisite test references",
           errors: [
@@ -290,7 +284,7 @@ export async function createTestHandler(
     }
 
     // Generic error response
-    const errorResponse: ErrorResponse = {
+    const errorResponse: TestErrorResponse = {
       success: false,
       message: "Internal server error",
       ...(env.NODE_ENV === "development" && {
