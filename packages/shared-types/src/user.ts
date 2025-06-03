@@ -127,6 +127,11 @@ export const GetUsersRequestSchema = z.object({
   sort_order: z.enum(["asc", "desc"]).default("desc"),
 });
 
+// Get User By ID Request Schema (Path Parameters)
+export const GetUserByIdRequestSchema = z.object({
+  userId: z.string().uuid("Invalid user ID format"),
+});
+
 // ==================== RESPONSE SCHEMAS ====================
 export const UserDataSchema = z.object({
   id: z.string().uuid(),
@@ -156,6 +161,14 @@ export const UserDataSchema = z.object({
 });
 
 export const CreateUserResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: UserDataSchema,
+  timestamp: z.string(),
+});
+
+// Get User By ID Response Schema
+export const GetUserByIdResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   data: UserDataSchema,
@@ -204,6 +217,8 @@ export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>;
 export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>;
 export type GetUsersRequest = z.infer<typeof GetUsersRequestSchema>;
 export type GetUsersResponse = z.infer<typeof GetUsersResponseSchema>;
+export type GetUserByIdRequest = z.infer<typeof GetUserByIdRequestSchema>;
+export type GetUserByIdResponse = z.infer<typeof GetUserByIdResponseSchema>;
 export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export type UserData = z.infer<typeof UserDataSchema>;

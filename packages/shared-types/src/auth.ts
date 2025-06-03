@@ -186,6 +186,7 @@ export type JWTPayload = z.infer<typeof JWTPayloadSchema>;
 
 // ==================== DATABASE TYPES ====================
 export type CreateAuthSessionDB = {
+  id?: string; // ADDED: Optional session ID
   user_id: string;
   token: string;
   refresh_token: string;

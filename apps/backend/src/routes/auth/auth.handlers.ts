@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { eq, or, and } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   getDbFromEnv,
   users,
@@ -37,7 +37,6 @@ import {
   type AuthSuccessResponse,
   type ErrorResponse,
   type AuthTokens,
-  type CreateAuthSessionDB,
   AUTH_CONSTANTS,
   AUTH_ERROR_CODES,
 } from "shared-types";
@@ -195,26 +194,29 @@ export async function adminLoginHandler(
       return c.json(errorResponse, 401);
     }
 
-    // Generate tokens
+    // FIXED: Generate session ID first, then use it for both JWT and database
     const sessionId = crypto.randomUUID();
+
     const accessToken = generateAccessToken(
       {
         sub: user.id,
         role: user.role,
         nik: user.nik,
         email: user.email,
-        session_id: sessionId,
+        session_id: sessionId, // Use the same session ID
       },
       env.JWT_SECRET
     );
+
     const refreshToken = generateRefreshToken(
       user.id,
-      sessionId,
+      sessionId, // Use the same session ID
       env.JWT_SECRET
     );
 
-    // Create session in database
-    const sessionData: CreateAuthSessionDB = {
+    // Create session in database with explicit session ID
+    const sessionData = {
+      id: sessionId, // FIXED: Explicitly set session ID
       user_id: user.id,
       token: accessToken,
       refresh_token: refreshToken,
@@ -363,26 +365,29 @@ export async function participantLoginHandler(
       return c.json(errorResponse, 401);
     }
 
-    // Generate tokens
+    // FIXED: Generate session ID first, then use it for both JWT and database
     const sessionId = crypto.randomUUID();
+
     const accessToken = generateAccessToken(
       {
         sub: user.id,
         role: user.role,
         nik: user.nik,
         email: user.email,
-        session_id: sessionId,
+        session_id: sessionId, // Use the same session ID
       },
       env.JWT_SECRET
     );
+
     const refreshToken = generateRefreshToken(
       user.id,
-      sessionId,
+      sessionId, // Use the same session ID
       env.JWT_SECRET
     );
 
-    // Create session in database
-    const sessionData: CreateAuthSessionDB = {
+    // Create session in database with explicit session ID
+    const sessionData = {
+      id: sessionId, // FIXED: Explicitly set session ID
       user_id: user.id,
       token: accessToken,
       refresh_token: refreshToken,
@@ -524,21 +529,23 @@ export async function refreshTokenHandler(
       return c.json(errorResponse, 401);
     }
 
-    // Generate new tokens
-    const newSessionId = crypto.randomUUID();
+    // FIXED: Use existing session ID instead of generating new one
+    const sessionId = session.id;
+
     const newAccessToken = generateAccessToken(
       {
         sub: user.id,
         role: user.role,
         nik: user.nik,
         email: user.email,
-        session_id: newSessionId,
+        session_id: sessionId, // Use existing session ID
       },
       env.JWT_SECRET
     );
+
     const newRefreshToken = generateRefreshToken(
       user.id,
-      newSessionId,
+      sessionId, // Use existing session ID
       env.JWT_SECRET
     );
 

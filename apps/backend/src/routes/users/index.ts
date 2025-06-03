@@ -4,10 +4,12 @@ import { type CloudflareBindings } from "../../lib/env";
 import {
   CreateUserRequestSchema,
   GetUsersRequestSchema,
+  GetUserByIdRequestSchema,
   type ErrorResponse,
 } from "shared-types";
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
+import { getUserByIdHandler } from "./user.get";
 import { getUserSchemaHandler } from "./user.schema";
 import { getAdminStatusHandler } from "./user.status";
 import {
@@ -19,8 +21,6 @@ import {
 import {
   userRegistrationRateLimit,
   generalApiRateLimit,
-  loginRateLimit,
-  passwordChangeRateLimit,
 } from "../../middleware/rateLimiter";
 
 const userRoutes = new Hono<{ Bindings: CloudflareBindings }>();
@@ -92,23 +92,28 @@ userRoutes.get(
 
 // ==================== INDIVIDUAL USER ROUTES ====================
 
-// Get Single User (Admin atau user sendiri)
+// Get Single User (Admin can access any user, participants can only access their own)
 userRoutes.get(
   "/:userId",
-  authenticateUser,
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
   requireRole("admin", "participant"), // Both roles can access but with restrictions
-  async (c, next) => {
-    // Implementation untuk get single user akan dibuat terpisah
-    // Untuk sekarang return not implemented
-    return c.json(
-      {
+  zValidator("param", GetUserByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
         success: false,
-        message: "Get single user not implemented yet",
+        message: "Invalid user ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
         timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getUserByIdHandler
 );
 
 // Update User (Admin atau user sendiri)

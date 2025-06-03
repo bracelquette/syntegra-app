@@ -51,6 +51,7 @@ export async function authenticateUser(
 
     // Get authorization header
     const authHeader = c.req.header("Authorization");
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       const errorResponse: ErrorResponse = {
         success: false,
@@ -97,6 +98,9 @@ export async function authenticateUser(
       };
       return c.json(errorResponse, 401);
     }
+
+    console.log("authHeader : ", authHeader.substring(7));
+    console.log("payload : ", payload);
 
     // Validate session in database
     const isValidSession = await validateSession(db, payload.session_id);

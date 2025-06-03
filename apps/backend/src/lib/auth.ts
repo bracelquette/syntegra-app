@@ -1,5 +1,5 @@
 import { sign, verify } from "jsonwebtoken";
-import { eq, and, lt, sql } from "drizzle-orm";
+import { eq, and, lt, gt, sql } from "drizzle-orm";
 import {
   type JWTPayload,
   type AuthUserData,
@@ -197,16 +197,22 @@ export function generateRandomToken(length: number = 32): string {
 // ==================== DATABASE UTILITIES ====================
 
 /**
- * Buat session di database
+ * Buat session di database dengan session ID yang sudah ditentukan
  */
 export async function createAuthSession(
   db: Database,
-  sessionData: CreateAuthSessionDB
+  sessionData: CreateAuthSessionDB & { id?: string }
 ): Promise<string> {
   try {
+    // Jika tidak ada ID yang diberikan, generate satu
+    const sessionId = sessionData.id || crypto.randomUUID();
+
     const [session] = await db
       .insert(authSessions)
-      .values(sessionData)
+      .values({
+        id: sessionId, // Explicitly set the session ID
+        ...sessionData,
+      })
       .returning({ id: authSessions.id });
 
     if (!session) {
@@ -251,7 +257,7 @@ export async function deleteAllUserSessions(
 }
 
 /**
- * Validate session di database
+ * Validate session di database - FIXED VERSION
  */
 export async function validateSession(
   db: Database,
@@ -265,7 +271,7 @@ export async function validateSession(
         and(
           eq(authSessions.id, sessionId),
           eq(authSessions.is_active, true),
-          lt(authSessions.expires_at, new Date())
+          gt(authSessions.expires_at, new Date()) // Session is valid if expires_at > current time
         )
       )
       .limit(1);
