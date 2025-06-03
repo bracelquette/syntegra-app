@@ -22,5 +22,8 @@ export * from "./session";
 // Export all session-participants related types and schemas
 export * from "./session-participants";
 
+// Export all answer-related types and schemas
+export * from "./answer";
+
 // Re-export zod for convenience
 export { z } from "zod";

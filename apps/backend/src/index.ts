@@ -115,6 +115,17 @@ app.get("/", (c) => {
         statusOptions: "GET /api/v1/attempts/utils/status-options",
         stats: "GET /api/v1/attempts/stats/summary",
       },
+      answers: {
+        // Participant
+        submit: "POST /api/v1/answers/attempts/:attemptId/answers",
+        getAttemptAnswers: "GET /api/v1/answers/attempts/:attemptId/answers",
+        getSpecificAnswer:
+          "GET /api/v1/answers/attempts/:attemptId/answers/:questionId",
+        autoSave: "POST /api/v1/answers/auto-save",
+        // Admin
+        stats: "GET /api/v1/answers/attempts/:attemptId/stats",
+        answerTypes: "GET /api/v1/answers/utils/answer-types",
+      },
     },
   });
 });
