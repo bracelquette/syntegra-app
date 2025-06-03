@@ -7,12 +7,14 @@ import {
   GetUserByIdRequestSchema,
   UpdateUserRequestSchema,
   UpdateUserByIdRequestSchema,
+  DeleteUserByIdRequestSchema,
   type ErrorResponse,
 } from "shared-types";
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
 import { getUserByIdHandler } from "./user.get";
 import { updateUserHandler } from "./user.update";
+import { deleteUserHandler } from "./user.delete";
 import { getUserSchemaHandler } from "./user.schema";
 import { getAdminStatusHandler } from "./user.status";
 import {
@@ -158,23 +160,28 @@ userRoutes.put(
   updateUserHandler
 );
 
-// Delete User (Admin only)
+// Delete User (Admin only) - SOFT DELETE IMPLEMENTATION
 userRoutes.delete(
   "/:userId",
+  generalApiRateLimit, // General rate limiting
   authenticateUser,
   requireAdmin, // Only admin can delete users
-  async (c, next) => {
-    // Implementation untuk delete user akan dibuat terpisah
-    // Untuk sekarang return not implemented
-    return c.json(
-      {
+  zValidator("param", DeleteUserByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
         success: false,
-        message: "Delete user not implemented yet",
+        message: "Invalid user ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
         timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  deleteUserHandler
 );
 
 // ==================== BULK OPERATIONS (Admin only) ====================
