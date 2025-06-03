@@ -24,8 +24,13 @@ import { getTestPrerequisitesHandler } from "./test.prerequisites";
 import { updateTestDisplayOrderHandler } from "./test.display-order";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
+import { questionRoutes } from "./questions";
 
 const testRoutes = new Hono<{ Bindings: CloudflareBindings }>();
+
+// ==================== QUESTION ROUTES ====================
+// Mount question routes under /:testId/questions
+testRoutes.route("/:testId/questions", questionRoutes);
 
 // ==================== CATEGORY & MODULE TYPE ROUTES (Admin only) ====================
 

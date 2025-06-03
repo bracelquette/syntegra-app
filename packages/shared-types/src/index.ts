@@ -10,5 +10,8 @@ export * from "./auth";
 // Export all test-related types and schemas
 export * from "./test";
 
+// Export all question-related types and schemas
+export * from "./question";
+
 // Re-export zod for convenience
 export { z } from "zod";

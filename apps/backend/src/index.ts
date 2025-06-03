@@ -1,3 +1,4 @@
+// apps/backend/src/index.ts
 import { Hono } from "hono";
 import { api } from "./routes/api";
 import type { CloudflareBindings } from "./lib/env";
@@ -52,6 +53,19 @@ app.get("/", (c) => {
         moduleTypes: "GET /api/v1/tests/module-types",
         categoriesByType: "GET /api/v1/tests/categories/:moduleType",
         filterOptions: "GET /api/v1/tests/filters/options",
+        questions: {
+          create: "POST /api/v1/tests/:testId/questions",
+          list: "GET /api/v1/tests/:testId/questions",
+          get: "GET /api/v1/tests/:testId/questions/:questionId",
+          update: "PUT /api/v1/tests/:testId/questions/:questionId",
+          delete: "DELETE /api/v1/tests/:testId/questions/:questionId",
+          stats: "GET /api/v1/tests/:testId/questions/stats",
+          types: "GET /api/v1/tests/:testId/questions/types",
+          bulk: {
+            create: "POST /api/v1/tests/:testId/questions/bulk",
+            reorder: "PUT /api/v1/tests/:testId/questions/reorder",
+          },
+        },
       },
     },
   });
