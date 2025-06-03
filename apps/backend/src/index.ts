@@ -103,11 +103,17 @@ app.get("/", (c) => {
         },
       },
       attempts: {
-        create: "POST /api/v1/attempts",
+        // Participant
+        start: "POST /api/v1/attempts/start",
         get: "GET /api/v1/attempts/:attemptId",
         update: "PUT /api/v1/attempts/:attemptId",
         finish: "POST /api/v1/attempts/:attemptId/finish",
+        progress: "GET /api/v1/attempts/:attemptId/progress",
+        // Admin
+        getUserAttempts: "GET /api/v1/attempts/user/:userId",
+        getSessionAttempts: "GET /api/v1/attempts/session/:sessionId",
         statusOptions: "GET /api/v1/attempts/utils/status-options",
+        stats: "GET /api/v1/attempts/stats/summary",
       },
     },
   });

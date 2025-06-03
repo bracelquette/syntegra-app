@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// ==================== ENUMS ====================
+// ==================== EXISTING ENUMS ====================
 export const AttemptStatusEnum = z.enum([
   "started",
   "in_progress",
@@ -9,12 +9,91 @@ export const AttemptStatusEnum = z.enum([
   "expired",
 ]);
 
-// ==================== REQUEST SCHEMAS ====================
+// ==================== NEW REQUEST SCHEMAS ====================
+
+// Get User Attempts Request Schema (Path Parameters)
+export const GetUserAttemptsRequestSchema = z.object({
+  userId: z.string().uuid("Invalid user ID format"),
+});
+
+// Get User Attempts Query Schema
+export const GetUserAttemptsQuerySchema = z.object({
+  // Pagination
+  page: z.coerce.number().min(1, "Page must be at least 1").default(1),
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100, "Limit must be between 1 and 100")
+    .default(10),
+
+  // Filters
+  status: AttemptStatusEnum.optional(),
+  test_id: z.string().uuid("Invalid test ID format").optional(),
+  session_id: z.string().uuid("Invalid session ID format").optional(),
+
+  // Date filters
+  start_date_from: z.string().datetime().optional(),
+  start_date_to: z.string().datetime().optional(),
+
+  // Sorting
+  sort_by: z
+    .enum([
+      "start_time",
+      "end_time",
+      "status",
+      "test_name",
+      "attempt_number",
+      "created_at",
+    ])
+    .default("start_time"),
+  sort_order: z.enum(["asc", "desc"]).default("desc"),
+});
+
+// Get Session Attempts Request Schema (Path Parameters)
+export const GetSessionAttemptsRequestSchema = z.object({
+  sessionId: z.string().uuid("Invalid session ID format"),
+});
+
+// Get Session Attempts Query Schema
+export const GetSessionAttemptsQuerySchema = z.object({
+  // Pagination
+  page: z.coerce.number().min(1, "Page must be at least 1").default(1),
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100, "Limit must be between 1 and 100")
+    .default(10),
+
+  // Filters
+  status: AttemptStatusEnum.optional(),
+  test_id: z.string().uuid("Invalid test ID format").optional(),
+  user_id: z.string().uuid("Invalid user ID format").optional(),
+
+  // Sorting
+  sort_by: z
+    .enum([
+      "start_time",
+      "user_name",
+      "test_name",
+      "status",
+      "attempt_number",
+      "progress_percentage",
+    ])
+    .default("start_time"),
+  sort_order: z.enum(["asc", "desc"]).default("desc"),
+});
+
+// Get Attempt Progress Request Schema (Path Parameters)
+export const GetAttemptProgressRequestSchema = z.object({
+  attemptId: z.string().uuid("Invalid attempt ID format"),
+});
+
+// ==================== EXISTING REQUEST SCHEMAS ====================
 
 // Start Test Attempt Request Schema
 export const StartTestAttemptRequestSchema = z.object({
   test_id: z.string().uuid("Invalid test ID format"),
-  session_code: z.string().min(1, "Session code is required").optional(), // Optional if taking test independently
+  session_code: z.string().min(1, "Session code is required").optional(),
   browser_info: z
     .object({
       user_agent: z.string(),
@@ -30,7 +109,7 @@ export const StartTestAttemptRequestSchema = z.object({
 export const UpdateTestAttemptRequestSchema = z.object({
   status: AttemptStatusEnum.optional(),
   questions_answered: z.number().min(0).optional(),
-  time_spent: z.number().min(0).optional(), // in seconds
+  time_spent: z.number().min(0).optional(),
   browser_info: z
     .object({
       user_agent: z.string(),
@@ -44,7 +123,7 @@ export const UpdateTestAttemptRequestSchema = z.object({
 
 // Finish Test Attempt Request Schema
 export const FinishTestAttemptRequestSchema = z.object({
-  time_spent: z.number().min(0), // Total time spent in seconds
+  time_spent: z.number().min(0),
   questions_answered: z.number().min(0),
   completion_type: z
     .enum(["completed", "abandoned", "expired"])
@@ -75,7 +154,7 @@ export const FinishAttemptByIdRequestSchema = z.object({
 
 // ==================== RESPONSE SCHEMAS ====================
 
-// Test Attempt Data Schema
+// Test Attempt Data Schema (Enhanced)
 export const TestAttemptDataSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -89,7 +168,7 @@ export const TestAttemptDataSchema = z.object({
   user_agent: z.string().nullable(),
   browser_info: z.record(z.any()).nullable(),
   attempt_number: z.number(),
-  time_spent: z.number().nullable(), // in seconds
+  time_spent: z.number().nullable(),
   questions_answered: z.number(),
   total_questions: z.number().nullable(),
   created_at: z.date(),
@@ -102,11 +181,20 @@ export const TestAttemptDataSchema = z.object({
       name: z.string(),
       category: z.string(),
       module_type: z.string(),
-      time_limit: z.number(), // in minutes
+      time_limit: z.number(),
       total_questions: z.number(),
       icon: z.string().nullable(),
       card_color: z.string().nullable(),
       instructions: z.string().nullable(),
+    })
+    .optional(),
+
+  user: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string(),
+      email: z.string(),
+      nik: z.string(),
     })
     .optional(),
 
@@ -121,11 +209,117 @@ export const TestAttemptDataSchema = z.object({
     .optional(),
 
   // Computed fields
-  time_remaining: z.number().optional(), // in seconds
+  time_remaining: z.number().optional(),
   progress_percentage: z.number().optional(),
   can_continue: z.boolean().optional(),
   is_expired: z.boolean().optional(),
 });
+
+// Attempt Progress Data Schema
+export const AttemptProgressDataSchema = z.object({
+  attempt_id: z.string().uuid(),
+  status: AttemptStatusEnum,
+  start_time: z.date(),
+  time_spent: z.number().nullable(),
+  time_remaining: z.number(),
+  time_limit: z.number(), // in minutes
+  questions_answered: z.number(),
+  total_questions: z.number(),
+  progress_percentage: z.number(),
+  completion_rate: z.number(), // questions answered / total questions
+  time_efficiency: z.number(), // time spent efficiency
+  can_continue: z.boolean(),
+  is_expired: z.boolean(),
+  is_nearly_expired: z.boolean(), // within 5 minutes
+  estimated_completion_time: z.number().optional(), // estimated minutes to complete
+  test: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    category: z.string(),
+    module_type: z.string(),
+    time_limit: z.number(),
+    total_questions: z.number(),
+  }),
+  session: z
+    .object({
+      id: z.string().uuid(),
+      session_name: z.string(),
+      session_code: z.string(),
+      target_position: z.string(),
+    })
+    .nullable(),
+});
+
+// NEW RESPONSE SCHEMAS
+
+// Get User Attempts Response Schema
+export const GetUserAttemptsResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(TestAttemptDataSchema),
+  meta: z.object({
+    current_page: z.number(),
+    per_page: z.number(),
+    total: z.number(),
+    total_pages: z.number(),
+    has_next_page: z.boolean(),
+    has_prev_page: z.boolean(),
+  }),
+  summary: z
+    .object({
+      total_attempts: z.number(),
+      completed_attempts: z.number(),
+      in_progress_attempts: z.number(),
+      abandoned_attempts: z.number(),
+      expired_attempts: z.number(),
+      average_completion_rate: z.number(),
+      total_time_spent: z.number(), // in minutes
+    })
+    .optional(),
+  timestamp: z.string(),
+});
+
+// Get Session Attempts Response Schema
+export const GetSessionAttemptsResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(TestAttemptDataSchema),
+  meta: z.object({
+    current_page: z.number(),
+    per_page: z.number(),
+    total: z.number(),
+    total_pages: z.number(),
+    has_next_page: z.boolean(),
+    has_prev_page: z.boolean(),
+  }),
+  session_summary: z
+    .object({
+      session_id: z.string().uuid(),
+      session_name: z.string(),
+      session_code: z.string(),
+      target_position: z.string(),
+      total_participants: z.number(),
+      total_attempts: z.number(),
+      completed_attempts: z.number(),
+      in_progress_attempts: z.number(),
+      abandoned_attempts: z.number(),
+      expired_attempts: z.number(),
+      overall_completion_rate: z.number(),
+      average_time_per_test: z.number(), // in minutes
+    })
+    .optional(),
+  timestamp: z.string(),
+});
+
+// Get Attempt Progress Response Schema
+export const GetAttemptProgressResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: AttemptProgressDataSchema,
+  timestamp: z.string(),
+});
+
+// EXISTING RESPONSE SCHEMAS
 
 // Start Test Attempt Response Schema
 export const StartTestAttemptResponseSchema = z.object({
@@ -168,7 +362,7 @@ export const FinishTestAttemptResponseSchema = z.object({
         completion_percentage: z.number(),
         calculated_at: z.date(),
       })
-      .optional(), // Result might not be immediately available
+      .optional(),
     next_test: z
       .object({
         id: z.string().uuid(),
@@ -178,7 +372,7 @@ export const FinishTestAttemptResponseSchema = z.object({
         sequence: z.number(),
       })
       .nullable()
-      .optional(), // Next test in session if applicable
+      .optional(),
   }),
   timestamp: z.string(),
 });
@@ -200,6 +394,32 @@ export const AttemptErrorResponseSchema = z.object({
 // ==================== TYPE EXPORTS ====================
 export type AttemptStatus = z.infer<typeof AttemptStatusEnum>;
 
+// NEW TYPES
+export type GetUserAttemptsRequest = z.infer<
+  typeof GetUserAttemptsRequestSchema
+>;
+export type GetUserAttemptsQuery = z.infer<typeof GetUserAttemptsQuerySchema>;
+export type GetUserAttemptsResponse = z.infer<
+  typeof GetUserAttemptsResponseSchema
+>;
+export type GetSessionAttemptsRequest = z.infer<
+  typeof GetSessionAttemptsRequestSchema
+>;
+export type GetSessionAttemptsQuery = z.infer<
+  typeof GetSessionAttemptsQuerySchema
+>;
+export type GetSessionAttemptsResponse = z.infer<
+  typeof GetSessionAttemptsResponseSchema
+>;
+export type GetAttemptProgressRequest = z.infer<
+  typeof GetAttemptProgressRequestSchema
+>;
+export type GetAttemptProgressResponse = z.infer<
+  typeof GetAttemptProgressResponseSchema
+>;
+export type AttemptProgressData = z.infer<typeof AttemptProgressDataSchema>;
+
+// EXISTING TYPES
 export type StartTestAttemptRequest = z.infer<
   typeof StartTestAttemptRequestSchema
 >;
@@ -232,61 +452,7 @@ export type AttemptErrorResponse = z.infer<typeof AttemptErrorResponseSchema>;
 export type TestAttemptData = z.infer<typeof TestAttemptDataSchema>;
 export type AttemptErrorDetail = z.infer<typeof AttemptErrorDetailSchema>;
 
-// ==================== DATABASE TYPES ====================
-export type CreateTestAttemptDB = {
-  user_id: string;
-  test_id: string;
-  session_test_id: string | null;
-  start_time: Date;
-  end_time: Date | null;
-  status: AttemptStatus;
-  ip_address: string | null;
-  user_agent: string | null;
-  browser_info: Record<string, any> | null;
-  attempt_number: number;
-  total_questions: number | null;
-};
-
-export type UpdateTestAttemptDB = {
-  status?: AttemptStatus;
-  end_time?: Date | null;
-  actual_end_time?: Date | null;
-  time_spent?: number | null;
-  questions_answered?: number;
-  browser_info?: Record<string, any> | null;
-  updated_at: Date;
-};
-
-// ==================== UTILITY TYPES ====================
-
-// For frontend display
-export type AttemptCardData = {
-  id: string;
-  test_name: string;
-  test_category: string;
-  status: AttemptStatus;
-  start_time: Date;
-  time_spent: number | null;
-  progress_percentage: number;
-  can_continue: boolean;
-  is_expired: boolean;
-};
-
-// For test taking interface
-export type AttemptSessionData = {
-  attempt_id: string;
-  test_id: string;
-  test_name: string;
-  time_limit: number; // in minutes
-  time_remaining: number; // in seconds
-  current_question: number;
-  total_questions: number;
-  progress_percentage: number;
-  can_pause: boolean;
-  auto_submit: boolean;
-};
-
-// ==================== VALIDATION HELPERS ====================
+// ==================== UTILITY FUNCTIONS ====================
 
 // Check if attempt can be continued
 export function canContinueAttempt(attempt: {
@@ -304,9 +470,8 @@ export function canContinueAttempt(attempt: {
     return now <= attempt.end_time;
   }
 
-  // Check if time limit exceeded
   const now = new Date();
-  const timeLimitMs = attempt.test.time_limit * 60 * 1000; // Convert minutes to ms
+  const timeLimitMs = attempt.test.time_limit * 60 * 1000;
   const elapsedMs = now.getTime() - attempt.start_time.getTime();
 
   return elapsedMs < timeLimitMs;
@@ -328,12 +493,21 @@ export function isAttemptExpired(attempt: {
     return now > attempt.end_time;
   }
 
-  // Check if time limit exceeded
   const now = new Date();
   const timeLimitMs = attempt.test.time_limit * 60 * 1000;
   const elapsedMs = now.getTime() - attempt.start_time.getTime();
 
   return elapsedMs >= timeLimitMs;
+}
+
+// Check if attempt is nearly expired (within 5 minutes)
+export function isAttemptNearlyExpired(attempt: {
+  end_time: Date | null;
+  start_time: Date;
+  test: { time_limit: number };
+}): boolean {
+  const timeRemaining = getAttemptTimeRemaining(attempt);
+  return timeRemaining <= 300 && timeRemaining > 0; // 5 minutes
 }
 
 // Calculate time remaining in seconds
@@ -349,7 +523,6 @@ export function getAttemptTimeRemaining(attempt: {
     return Math.max(0, Math.floor(diff / 1000));
   }
 
-  // Calculate based on time limit
   const timeLimitMs = attempt.test.time_limit * 60 * 1000;
   const elapsedMs = now.getTime() - attempt.start_time.getTime();
   const remainingMs = timeLimitMs - elapsedMs;
@@ -369,6 +542,46 @@ export function calculateAttemptProgress(attempt: {
   return Math.round(
     (attempt.questions_answered / attempt.total_questions) * 100
   );
+}
+
+// Calculate time efficiency
+export function calculateTimeEfficiency(attempt: {
+  time_spent: number | null;
+  start_time: Date;
+  test: { time_limit: number };
+}): number {
+  const now = new Date();
+  const elapsedMs = now.getTime() - attempt.start_time.getTime();
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+  const timeLimit = attempt.test.time_limit;
+
+  if (timeLimit === 0) return 100;
+
+  const efficiency = Math.max(0, 100 - (elapsedMinutes / timeLimit) * 100);
+  return Math.round(efficiency);
+}
+
+// Estimate completion time based on current progress
+export function estimateCompletionTime(attempt: {
+  questions_answered: number;
+  total_questions: number;
+  time_spent: number | null;
+  start_time: Date;
+}): number | null {
+  if (attempt.questions_answered === 0 || !attempt.total_questions) {
+    return null;
+  }
+
+  const now = new Date();
+  const elapsedMs = now.getTime() - attempt.start_time.getTime();
+  const elapsedMinutes = elapsedMs / (1000 * 60);
+
+  const avgTimePerQuestion = elapsedMinutes / attempt.questions_answered;
+  const remainingQuestions =
+    attempt.total_questions - attempt.questions_answered;
+  const estimatedMinutes = remainingQuestions * avgTimePerQuestion;
+
+  return Math.round(estimatedMinutes);
 }
 
 // Generate next attempt number for user
