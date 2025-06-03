@@ -2,69 +2,29 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { type CloudflareBindings } from "../../lib/env";
 import {
-  CreateTestRequestSchema,
   GetTestsRequestSchema,
   GetTestByIdRequestSchema,
-  UpdateTestRequestSchema,
-  UpdateTestByIdRequestSchema,
-  DeleteTestByIdRequestSchema,
-  type ErrorResponse,
+  type TestErrorResponse,
 } from "shared-types";
-import { createTestHandler } from "./test.create";
-import { getTestSchemaHandler } from "./test.schema";
-import {
-  authenticateUser,
-  requireAdmin,
-  requireRole,
-} from "../../middleware/auth";
+import { getTestsListHandler } from "./test.list";
+import { getTestByIdHandler } from "./test.get";
+import { getTestStatsHandler } from "./test.stats";
+import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
 
 const testRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
-// ==================== PUBLIC ROUTES ====================
+// ==================== PROTECTED ROUTES (Admin Only) ====================
 
-// Get Test Schema Endpoint (public for documentation)
-testRoutes.get(
-  "/schema",
-  generalApiRateLimit, // General rate limiting
-  getTestSchemaHandler
-);
-
-// ==================== PROTECTED ROUTES ====================
-
-// Create Test Endpoint (ADMIN ONLY)
-testRoutes.post(
-  "/",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // Second: Verify user is admin
-  zValidator("json", CreateTestRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Validation failed",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  createTestHandler
-);
-
-// Get All Tests Endpoint (ADMIN ONLY for now)
+// Get All Tests Endpoint (ADMIN ONLY)
 testRoutes.get(
   "/",
   generalApiRateLimit, // General rate limiting
   authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // Second: Verify user is admin (participants may get limited access later)
+  requireAdmin, // Second: Verify user is admin (participants will get 403 Forbidden)
   zValidator("query", GetTestsRequestSchema, (result, c) => {
     if (!result.success) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Invalid query parameters",
         errors: result.error.errors.map((err) => ({
@@ -77,30 +37,18 @@ testRoutes.get(
       return c.json(errorResponse, 400);
     }
   }),
-  async (c) => {
-    // Placeholder for get tests list handler
-    return c.json(
-      {
-        success: false,
-        message: "Get tests list not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+  getTestsListHandler
 );
 
-// ==================== INDIVIDUAL TEST ROUTES ====================
-
-// Get Single Test (Admin can access any test, participants might get limited access later)
+// Get Single Test (ADMIN ONLY)
 testRoutes.get(
   "/:testId",
   generalApiRateLimit, // General rate limiting
   authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // For now admin only, will expand to participants with restrictions later
+  requireAdmin, // Second: Verify user is admin
   zValidator("param", GetTestByIdRequestSchema, (result, c) => {
     if (!result.success) {
-      const errorResponse: ErrorResponse = {
+      const errorResponse: TestErrorResponse = {
         success: false,
         message: "Invalid test ID parameter",
         errors: result.error.errors.map((err) => ({
@@ -113,103 +61,10 @@ testRoutes.get(
       return c.json(errorResponse, 400);
     }
   }),
-  async (c) => {
-    // Placeholder for get test by ID handler
-    return c.json(
-      {
-        success: false,
-        message: "Get test by ID not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+  getTestByIdHandler
 );
 
-// Update Test (Admin only)
-testRoutes.put(
-  "/:testId",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // Only admin can update tests
-  zValidator("param", UpdateTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  zValidator("json", UpdateTestRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Validation failed",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  async (c) => {
-    // Placeholder for update test handler
-    return c.json(
-      {
-        success: false,
-        message: "Update test not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
-);
-
-// Delete Test (Admin only) - SOFT DELETE IMPLEMENTATION
-testRoutes.delete(
-  "/:testId",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser,
-  requireAdmin, // Only admin can delete tests
-  zValidator("param", DeleteTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  async (c) => {
-    // Placeholder for delete test handler
-    return c.json(
-      {
-        success: false,
-        message: "Delete test not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
-);
-
-// ==================== TEST STATISTICS (Admin only) ====================
+// ==================== STATISTICS ROUTES (Admin only) ====================
 
 // Get Test Statistics
 testRoutes.get(
@@ -217,71 +72,112 @@ testRoutes.get(
   generalApiRateLimit,
   authenticateUser,
   requireAdmin,
-  async (c) => {
-    // Placeholder implementation for test statistics
-    return c.json(
-      {
-        success: false,
-        message: "Test statistics not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+  getTestStatsHandler
 );
 
-// Get Test Analytics by ID
+// ==================== UTILITY ROUTES (Admin only) ====================
+
+// Get Test Filter Options (for frontend dropdowns)
 testRoutes.get(
-  "/:testId/analytics",
+  "/filters/options",
   generalApiRateLimit,
   authenticateUser,
   requireAdmin,
-  zValidator("param", GetTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
+  async (c) => {
+    try {
+      // Import here to avoid circular dependencies
+      const {
+        TEST_MODULE_TYPE_LABELS,
+        TEST_CATEGORY_LABELS,
+        TEST_STATUS_LABELS,
+      } = await import("shared-types");
+
+      const filterOptions = {
+        success: true,
+        message: "Filter options retrieved successfully",
+        data: {
+          module_types: Object.entries(TEST_MODULE_TYPE_LABELS).map(
+            ([value, label]) => ({
+              value,
+              label,
+            })
+          ),
+          categories: Object.entries(TEST_CATEGORY_LABELS).map(
+            ([value, label]) => ({
+              value,
+              label,
+            })
+          ),
+          statuses: Object.entries(TEST_STATUS_LABELS).map(
+            ([value, label]) => ({
+              value,
+              label,
+            })
+          ),
+        },
         timestamp: new Date().toISOString(),
       };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  async (c) => {
-    // Placeholder for test analytics handler
-    return c.json(
-      {
+
+      return c.json(filterOptions, 200);
+    } catch (error) {
+      console.error("Error getting filter options:", error);
+      const errorResponse: TestErrorResponse = {
         success: false,
-        message: "Test analytics not implemented yet",
+        message: "Failed to retrieve filter options",
         timestamp: new Date().toISOString(),
-      },
-      501
-    );
+      };
+      return c.json(errorResponse, 500);
+    }
   }
 );
 
-// ==================== TEST CATEGORIES & MODULE TYPES ====================
+// ==================== FUTURE ROUTES (Placeholder) ====================
 
-// Get Available Categories by Module Type
-testRoutes.get(
-  "/categories/:moduleType",
+// Create Test (Admin only) - Future implementation
+testRoutes.post(
+  "/",
   generalApiRateLimit,
   authenticateUser,
-  requireRole("admin", "participant"), // Both can access this for reference
+  requireAdmin,
   async (c) => {
-    // This will be implemented when needed for frontend forms
-    return c.json(
-      {
-        success: false,
-        message: "Get categories by module type not implemented yet",
-        timestamp: new Date().toISOString(),
-      },
-      501
-    );
+    const errorResponse: TestErrorResponse = {
+      success: false,
+      message: "Test creation not implemented yet",
+      timestamp: new Date().toISOString(),
+    };
+    return c.json(errorResponse, 501);
+  }
+);
+
+// Update Test (Admin only) - Future implementation
+testRoutes.put(
+  "/:testId",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  async (c) => {
+    const errorResponse: TestErrorResponse = {
+      success: false,
+      message: "Test update not implemented yet",
+      timestamp: new Date().toISOString(),
+    };
+    return c.json(errorResponse, 501);
+  }
+);
+
+// Delete Test (Admin only) - Future implementation
+testRoutes.delete(
+  "/:testId",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  async (c) => {
+    const errorResponse: TestErrorResponse = {
+      success: false,
+      message: "Test deletion not implemented yet",
+      timestamp: new Date().toISOString(),
+    };
+    return c.json(errorResponse, 501);
   }
 );
 
@@ -289,7 +185,7 @@ testRoutes.get(
 testRoutes.onError((err, c) => {
   console.error("Test routes error:", err);
 
-  const errorResponse: ErrorResponse = {
+  const errorResponse: TestErrorResponse = {
     success: false,
     message: "Test route error",
     ...(c.env.NODE_ENV === "development" && {
