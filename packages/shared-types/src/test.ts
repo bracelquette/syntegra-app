@@ -46,10 +46,9 @@ export const CreateTestRequestSchema = z.object({
     .number()
     .min(1, "Time limit must be at least 1 minute")
     .optional(),
-  icon_url: z
+  icon: z
     .string()
-    .url("Invalid URL format")
-    .max(500, "URL is too long")
+    .max(10, "Icon must be an emoji (max 10 characters)")
     .optional(),
   card_color: z.string().max(100, "Card color is too long").optional(),
   test_prerequisites: z
@@ -89,10 +88,9 @@ export const UpdateTestRequestSchema = z
       .number()
       .min(1, "Time limit must be at least 1 minute")
       .optional(),
-    icon_url: z
+    icon: z
       .string()
-      .url("Invalid URL format")
-      .max(500, "URL is too long")
+      .max(10, "Icon must be an emoji (max 10 characters)")
       .optional(),
     card_color: z.string().max(100, "Card color is too long").optional(),
     test_prerequisites: z
@@ -215,7 +213,7 @@ export const TestDataSchema = z.object({
   module_type: ModuleTypeEnum,
   category: CategoryEnum,
   time_limit: z.number(), // in minutes
-  icon_url: z.string().nullable(),
+  icon: z.string().nullable(),
   card_color: z.string().nullable(),
   test_prerequisites: z.array(z.string().uuid()).nullable(),
   display_order: z.number(),
@@ -454,13 +452,13 @@ export type CreateTestDB = {
   module_type: ModuleType;
   category: Category;
   time_limit: number;
-  icon_url: string | null;
+  icon: string | null;
   card_color: string | null;
   test_prerequisites: string[] | null;
   display_order: number;
   subcategory: string[] | null;
   total_questions: number;
-  passing_score: number | null;
+  passing_score: string | null;
   status: TestStatus;
   instructions: string | null;
   created_by: string | null;
@@ -473,7 +471,7 @@ export type UpdateTestDB = {
   module_type?: ModuleType;
   category?: Category;
   time_limit?: number;
-  icon_url?: string | null;
+  icon?: string | null;
   card_color?: string | null;
   test_prerequisites?: string[] | null;
   display_order?: number;
@@ -502,7 +500,7 @@ export type TestCardData = {
   module_type: ModuleType;
   category: Category;
   time_limit: number;
-  icon_url: string | null;
+  icon: string | null;
   card_color: string | null;
   total_questions: number;
   display_order: number;

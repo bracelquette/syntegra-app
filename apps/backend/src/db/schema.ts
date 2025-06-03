@@ -8,7 +8,7 @@ import {
   boolean,
   json,
   pgEnum,
-  decimal,
+  numeric,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -200,13 +200,13 @@ export const tests = pgTable(
     module_type: moduleTypeEnum("module_type").notNull(),
     category: categoryEnum("category").notNull(),
     time_limit: integer("time_limit").notNull(), // in minutes
-    icon_url: varchar("icon_url", { length: 500 }),
+    icon: varchar("icon", { length: 10 }), // emoji
     card_color: varchar("card_color", { length: 100 }), // e.g., "from-green-500 to-emerald-600"
     test_prerequisites: json("test_prerequisites").$type<string[]>(), // array of test IDs
     display_order: integer("display_order").default(0),
     subcategory: json("subcategory").$type<string[]>(), // max 2 items
     total_questions: integer("total_questions").default(0),
-    passing_score: decimal("passing_score", { precision: 5, scale: 2 }),
+    passing_score: numeric("passing_score", { precision: 5, scale: 2 }),
     status: testStatusEnum("status").default("active"),
     instructions: text("instructions"),
     created_at: timestamp("created_at").defaultNow().notNull(),
@@ -310,7 +310,7 @@ export const sessionModules = pgTable(
       .references(() => tests.id),
     sequence: integer("sequence").notNull(),
     is_required: boolean("is_required").default(true),
-    weight: decimal("weight", { precision: 3, scale: 2 }).default("1.00"), // for weighted scoring
+    weight: numeric("weight", { precision: 3, scale: 2 }).default("1.00"), // for weighted scoring
     created_at: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -378,7 +378,7 @@ export const userAnswers = pgTable(
       .references(() => testAttempts.id),
     answer: text("answer"), // could be text, JSON, or file path for drawings
     answer_data: json("answer_data"), // for complex answers (drawings, arrays, etc.)
-    score: decimal("score", { precision: 5, scale: 2 }),
+    score: numeric("score", { precision: 5, scale: 2 }),
     time_taken: integer("time_taken"), // in seconds
     is_correct: boolean("is_correct"),
     confidence_level: integer("confidence_level"), // 1-5 scale
@@ -416,9 +416,9 @@ export const testResults = pgTable(
     session_result_id: uuid("session_result_id").references(
       () => sessionResults.id
     ),
-    raw_score: decimal("raw_score", { precision: 8, scale: 2 }),
-    scaled_score: decimal("scaled_score", { precision: 8, scale: 2 }),
-    percentile: decimal("percentile", { precision: 5, scale: 2 }),
+    raw_score: numeric("raw_score", { precision: 8, scale: 2 }),
+    scaled_score: numeric("scaled_score", { precision: 8, scale: 2 }),
+    percentile: numeric("percentile", { precision: 5, scale: 2 }),
     grade: varchar("grade", { length: 10 }), // A, B, C, D, E
     traits: json("traits").$type<
       {
@@ -433,7 +433,7 @@ export const testResults = pgTable(
     recommendations: text("recommendations"),
     detailed_analysis: json("detailed_analysis"),
     is_passed: boolean("is_passed"),
-    completion_percentage: decimal("completion_percentage", {
+    completion_percentage: numeric("completion_percentage", {
       precision: 5,
       scale: 2,
     }),
@@ -462,9 +462,9 @@ export const sessionResults = pgTable(
     user_id: uuid("user_id")
       .notNull()
       .references(() => users.id),
-    total_score: decimal("total_score", { precision: 8, scale: 2 }),
-    weighted_score: decimal("weighted_score", { precision: 8, scale: 2 }),
-    overall_percentile: decimal("overall_percentile", {
+    total_score: numeric("total_score", { precision: 8, scale: 2 }),
+    weighted_score: numeric("weighted_score", { precision: 8, scale: 2 }),
+    overall_percentile: numeric("overall_percentile", {
       precision: 5,
       scale: 2,
     }),
@@ -482,9 +482,9 @@ export const sessionResults = pgTable(
     strengths: json("strengths").$type<string[]>(),
     areas_for_development: json("areas_for_development").$type<string[]>(),
     summary_description: text("summary_description"),
-    completion_rate: decimal("completion_rate", { precision: 5, scale: 2 }),
-    time_efficiency: decimal("time_efficiency", { precision: 5, scale: 2 }),
-    consistency_score: decimal("consistency_score", { precision: 5, scale: 2 }),
+    completion_rate: numeric("completion_rate", { precision: 5, scale: 2 }),
+    time_efficiency: numeric("time_efficiency", { precision: 5, scale: 2 }),
+    consistency_score: numeric("consistency_score", { precision: 5, scale: 2 }),
     is_final: boolean("is_final").default(false),
     completed_at: timestamp("completed_at"),
     reviewed_by: uuid("reviewed_by").references(() => users.id),
