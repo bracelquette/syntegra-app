@@ -5,11 +5,14 @@ import {
   CreateUserRequestSchema,
   GetUsersRequestSchema,
   GetUserByIdRequestSchema,
+  UpdateUserRequestSchema,
+  UpdateUserByIdRequestSchema,
   type ErrorResponse,
 } from "shared-types";
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
 import { getUserByIdHandler } from "./user.get";
+import { updateUserHandler } from "./user.update";
 import { getUserSchemaHandler } from "./user.schema";
 import { getAdminStatusHandler } from "./user.status";
 import {
@@ -116,23 +119,43 @@ userRoutes.get(
   getUserByIdHandler
 );
 
-// Update User (Admin atau user sendiri)
+// Update User (Admin can update any user, participants can only update their own)
 userRoutes.put(
   "/:userId",
-  authenticateUser,
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
   requireRole("admin", "participant"), // Both roles can access but with restrictions
-  async (c, next) => {
-    // Implementation untuk update user akan dibuat terpisah
-    // Untuk sekarang return not implemented
-    return c.json(
-      {
+  zValidator("param", UpdateUserByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
         success: false,
-        message: "Update user not implemented yet",
+        message: "Invalid user ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
         timestamp: new Date().toISOString(),
-      },
-      501
-    );
-  }
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  zValidator("json", UpdateUserRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  updateUserHandler
 );
 
 // Delete User (Admin only)

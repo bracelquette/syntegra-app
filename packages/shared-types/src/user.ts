@@ -250,3 +250,96 @@ export type CreateUserDB = {
   created_by: string | null;
   updated_by: string | null;
 };
+
+// ==================== UPDATE USER SCHEMAS ====================
+export const UpdateUserRequestSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Name is required")
+      .max(255, "Name is too long")
+      .optional(),
+    email: z
+      .string()
+      .email("Invalid email format")
+      .max(255, "Email is too long")
+      .optional(),
+    gender: GenderEnum.optional(),
+    phone: z
+      .string()
+      .min(1, "Phone is required")
+      .max(20, "Phone number is too long")
+      .optional(),
+    birth_place: z.string().max(100, "Birth place is too long").optional(),
+    birth_date: z.string().datetime().optional(),
+    religion: ReligionEnum.optional(),
+    education: EducationEnum.optional(),
+    address: z.string().optional(),
+    province: z.string().max(100, "Province is too long").optional(),
+    regency: z.string().max(100, "Regency is too long").optional(),
+    district: z.string().max(100, "District is too long").optional(),
+    village: z.string().max(100, "Village is too long").optional(),
+    postal_code: z.string().max(10, "Postal code is too long").optional(),
+    profile_picture_url: z
+      .string()
+      .url("Invalid URL format")
+      .max(500, "URL is too long")
+      .optional(),
+    // Admin only fields
+    is_active: z.boolean().optional(),
+    role: RoleEnum.optional(),
+  })
+  .refine(
+    (data) => {
+      // At least one field must be provided for update
+      const hasAtLeastOneField = Object.values(data).some(
+        (value) => value !== undefined
+      );
+      return hasAtLeastOneField;
+    },
+    {
+      message: "At least one field must be provided for update",
+      path: ["root"],
+    }
+  );
+
+// Update User By ID Request Schema (Path Parameters)
+export const UpdateUserByIdRequestSchema = z.object({
+  userId: z.string().uuid("Invalid user ID format"),
+});
+
+// Update User Response Schema
+export const UpdateUserResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: UserDataSchema,
+  timestamp: z.string(),
+});
+
+// ==================== TYPE EXPORTS ====================
+export type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>;
+export type UpdateUserByIdRequest = z.infer<typeof UpdateUserByIdRequestSchema>;
+export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>;
+
+// ==================== DATABASE TYPES ====================
+export type UpdateUserDB = {
+  name?: string;
+  email?: string;
+  gender?: Gender;
+  phone?: string;
+  birth_place?: string | null;
+  birth_date?: Date | null;
+  religion?: Religion | null;
+  education?: Education | null;
+  address?: string | null;
+  province?: string | null;
+  regency?: string | null;
+  district?: string | null;
+  village?: string | null;
+  postal_code?: string | null;
+  profile_picture_url?: string | null;
+  is_active?: boolean;
+  role?: Role;
+  updated_at: Date;
+  updated_by?: string | null;
+};
