@@ -1,20 +1,41 @@
 // apps/backend/src/index.ts
 import { Hono } from "hono";
 import { api } from "./routes/api";
+import { startDevScheduler } from "./lib/scheduler";
 import type { CloudflareBindings } from "./lib/env";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
+
+// Start scheduler for session status auto-updates
+// Only in development - production uses Cloudflare Cron Triggers
+if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+  console.log("🔧 Development environment detected, starting scheduler...");
+  // Note: Scheduler will start when first request is made due to Cloudflare Workers architecture
+}
 
 // Mount API routes
 app.route("/api/v1", api);
 
 // Root endpoint
 app.get("/", (c) => {
+  // Start scheduler on first request in development
+  if (
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV !== "production"
+  ) {
+    startDevScheduler(c.env);
+  }
+
   return c.json({
     success: true,
     message: "Syntegra Psikotes API",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
+    scheduler: {
+      enabled: true,
+      interval: "3 minutes",
+      jobs: ["session_status_updater"],
+    },
     endpoints: {
       health: "/api/v1/health",
       auth: {
@@ -37,6 +58,16 @@ app.get("/", (c) => {
           createFromJson: "POST /api/v1/users/bulk/json",
         },
         stats: "GET /api/v1/users/stats/summary",
+      },
+      sessions: {
+        create: "POST /api/v1/sessions",
+        list: "GET /api/v1/sessions",
+        get: "GET /api/v1/sessions/:id",
+        getByCode: "GET /api/v1/sessions/code/:code",
+        update: "PUT /api/v1/sessions/:id",
+        delete: "DELETE /api/v1/sessions/:id",
+        stats: "GET /api/v1/sessions/stats",
+        triggerStatusUpdate: "POST /api/v1/sessions/trigger-status-update",
       },
       tests: {
         create: "POST /api/v1/tests",
@@ -68,4 +99,18 @@ app.get("/", (c) => {
   });
 });
 
-export default app;
+// Cloudflare Cron Trigger handler for production
+export default {
+  fetch: app.fetch.bind(app),
+
+  // Handle scheduled events (cron triggers)
+  async scheduled(event: any, env: CloudflareBindings, ctx: any) {
+    console.log("⏰ Cron trigger fired:", new Date().toISOString());
+
+    // Import and run scheduled jobs
+    const { runScheduledJobs } = await import("./lib/scheduler");
+
+    // Use waitUntil to ensure the job completes before the worker terminates
+    ctx.waitUntil(runScheduledJobs(env));
+  },
+};

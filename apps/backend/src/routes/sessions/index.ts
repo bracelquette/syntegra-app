@@ -419,6 +419,24 @@ sessionRoutes.delete(
   }
 );
 
+// Manual trigger for session status updates (admin only)
+sessionRoutes.post(
+  "/trigger-status-update",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  async (c) => {
+    const { runScheduledJobs } = await import("../../lib/scheduler");
+    await runScheduledJobs(c.env);
+
+    return c.json({
+      success: true,
+      message: "Session status update triggered successfully",
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
 // ==================== ERROR HANDLERS ====================
 sessionRoutes.onError((err, c) => {
   console.error("Session routes error:", err);
