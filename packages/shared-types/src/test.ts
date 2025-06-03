@@ -334,6 +334,55 @@ export const TestErrorResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+// ==================== CATEGORY & MODULE TYPE RESPONSE SCHEMAS ====================
+
+// Get Categories Response Schema
+export const GetCategoriesResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(
+    z.object({
+      value: CategoryEnum,
+      label: z.string(),
+      module_type: ModuleTypeEnum,
+      default_time_limit: z.number(), // in minutes
+      recommended_card_color: z.string(),
+    })
+  ),
+  timestamp: z.string(),
+});
+
+// Get Module Types Response Schema
+export const GetModuleTypesResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(
+    z.object({
+      value: ModuleTypeEnum,
+      label: z.string(),
+      categories: z.array(CategoryEnum),
+      total_categories: z.number(),
+    })
+  ),
+  timestamp: z.string(),
+});
+
+// ==================== UTILITY TYPES ====================
+export type CategoryOption = {
+  value: Category;
+  label: string;
+  module_type: ModuleType;
+  default_time_limit: number;
+  recommended_card_color: string;
+};
+
+export type ModuleTypeOption = {
+  value: ModuleType;
+  label: string;
+  categories: Category[];
+  total_categories: number;
+};
+
 // ==================== TYPE EXPORTS ====================
 export type ModuleType = z.infer<typeof ModuleTypeEnum>;
 export type Category = z.infer<typeof CategoryEnum>;
@@ -356,6 +405,10 @@ export type TestData = z.infer<typeof TestDataSchema>;
 export type TestErrorDetail = z.infer<typeof TestErrorDetailSchema>;
 export type TestStats = z.infer<typeof TestStatsSchema>;
 export type GetTestStatsResponse = z.infer<typeof GetTestStatsResponseSchema>;
+export type GetCategoriesResponse = z.infer<typeof GetCategoriesResponseSchema>;
+export type GetModuleTypesResponse = z.infer<
+  typeof GetModuleTypesResponseSchema
+>;
 
 // ==================== DATABASE TYPES ====================
 export type CreateTestDB = {

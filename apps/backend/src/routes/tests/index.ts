@@ -16,6 +16,8 @@ import { getTestStatsHandler } from "./test.stats";
 import { createTestHandler } from "./test.create";
 import { updateTestHandler } from "./test.update";
 import { deleteTestHandler } from "./test.delete";
+import { getCategoriesHandler } from "./test.categories";
+import { getModuleTypesHandler } from "./test.module-types";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
 
@@ -23,139 +25,24 @@ const testRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
 // ==================== PROTECTED ROUTES (Admin Only) ====================
 
-// Get All Tests Endpoint (ADMIN ONLY)
+// ==================== CATEGORY & MODULE TYPE ROUTES (Admin only) ====================
+
+// Get All Categories
 testRoutes.get(
-  "/",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // Second: Verify user is admin (participants will get 403 Forbidden)
-  zValidator("query", GetTestsRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Invalid query parameters",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  getTestsListHandler
-);
-
-// Create Test (Admin only)
-testRoutes.post(
-  "/",
+  "/categories",
   generalApiRateLimit,
   authenticateUser,
   requireAdmin,
-  zValidator("json", CreateTestRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Validation failed",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  createTestHandler
+  getCategoriesHandler
 );
 
-// Get Single Test (ADMIN ONLY)
+// Get All Module Types
 testRoutes.get(
-  "/:testId",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser, // First: Verify user is authenticated
-  requireAdmin, // Second: Verify user is admin
-  zValidator("param", GetTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  getTestByIdHandler
-);
-
-// Update Test (Admin only)
-testRoutes.put(
-  "/:testId",
+  "/module-types",
   generalApiRateLimit,
   authenticateUser,
   requireAdmin,
-  zValidator("param", UpdateTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  zValidator("json", UpdateTestRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Validation failed",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  updateTestHandler
-);
-
-// Delete Test (Admin only)
-testRoutes.delete(
-  "/:testId",
-  generalApiRateLimit,
-  authenticateUser,
-  requireAdmin,
-  zValidator("param", DeleteTestByIdRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: TestErrorResponse = {
-        success: false,
-        message: "Invalid test ID parameter",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
-  deleteTestHandler
+  getModuleTypesHandler
 );
 
 // ==================== STATISTICS ROUTES (Admin only) ====================
@@ -339,5 +226,142 @@ testRoutes.onError((err, c) => {
 
   return c.json(errorResponse, 500);
 });
+
+// ==================== BASIC CRUD ROUTES ====================
+
+// Get All Tests Endpoint (ADMIN ONLY)
+testRoutes.get(
+  "/",
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
+  requireAdmin, // Second: Verify user is admin (participants will get 403 Forbidden)
+  zValidator("query", GetTestsRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid query parameters",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getTestsListHandler
+);
+
+// Create Test (Admin only)
+testRoutes.post(
+  "/",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("json", CreateTestRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  createTestHandler
+);
+
+// Get Single Test (ADMIN ONLY)
+testRoutes.get(
+  "/:testId",
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
+  requireAdmin, // Second: Verify user is admin
+  zValidator("param", GetTestByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getTestByIdHandler
+);
+
+// Update Test (Admin only)
+testRoutes.put(
+  "/:testId",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("param", UpdateTestByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  zValidator("json", UpdateTestRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  updateTestHandler
+);
+
+// Delete Test (Admin only)
+testRoutes.delete(
+  "/:testId",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("param", DeleteTestByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  deleteTestHandler
+);
 
 export { testRoutes };

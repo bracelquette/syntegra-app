@@ -46,7 +46,10 @@ app.get("/", (c) => {
         schema: "GET /api/v1/tests/schema",
         analytics: "GET /api/v1/tests/:id/analytics",
         stats: "GET /api/v1/tests/stats/summary",
-        categories: "GET /api/v1/tests/categories/:moduleType",
+        categories: "GET /api/v1/tests/categories",
+        moduleTypes: "GET /api/v1/tests/module-types",
+        categoriesByType: "GET /api/v1/tests/categories/:moduleType",
+        filterOptions: "GET /api/v1/tests/filters/options",
       },
     },
   });
