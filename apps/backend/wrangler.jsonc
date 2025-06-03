@@ -4,6 +4,14 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-05-29",
   "compatibility_flags": ["nodejs_compat"],
+
+  // Cron triggers for background jobs
+  "triggers": {
+    "crons": [
+      "*/3 * * * *", // Every 3 minutes
+    ],
+  },
+
   "vars": {
     // REQUIRED: Get your Neon database URL from https://console.neon.tech/
     // Example: "postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/database?sslmode=require"
