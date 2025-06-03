@@ -16,5 +16,8 @@ export * from "./question";
 // Export all session-related types and schemas
 export * from "./session";
 
+// Export all session-participants related types and schemas
+export * from "./session-participants";
+
 // Re-export zod for convenience
 export { z } from "zod";

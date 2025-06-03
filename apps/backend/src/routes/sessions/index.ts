@@ -20,8 +20,13 @@ import { updateSessionHandler } from "./session.update";
 import { deleteSessionHandler } from "./session.delete";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
+import { participantRoutes } from "./participants";
 
 const sessionRoutes = new Hono<{ Bindings: CloudflareBindings }>();
+
+// ==================== PARTICIPANT ROUTES ====================
+// Mount participant routes under /:sessionId/participants
+sessionRoutes.route("/:sessionId/participants", participantRoutes);
 
 // ==================== PUBLIC ROUTES (No Authentication) ====================
 
