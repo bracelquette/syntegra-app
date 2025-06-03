@@ -33,6 +33,116 @@ export const TestStatusEnum = z.enum(["active", "inactive", "archived"]);
 
 // ==================== REQUEST SCHEMAS ====================
 
+// Create Test Request Schema
+export const CreateTestRequestSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Test name is required")
+    .max(255, "Test name is too long"),
+  description: z.string().optional(),
+  module_type: ModuleTypeEnum,
+  category: CategoryEnum,
+  time_limit: z
+    .number()
+    .min(1, "Time limit must be at least 1 minute")
+    .optional(),
+  icon_url: z
+    .string()
+    .url("Invalid URL format")
+    .max(500, "URL is too long")
+    .optional(),
+  card_color: z.string().max(100, "Card color is too long").optional(),
+  test_prerequisites: z
+    .array(z.string().uuid("Invalid UUID format"))
+    .max(10, "Too many prerequisites")
+    .optional(),
+  display_order: z.number().min(0, "Display order must be positive").optional(),
+  subcategory: z
+    .array(z.string())
+    .max(2, "Maximum 2 subcategories allowed")
+    .optional(),
+  total_questions: z
+    .number()
+    .min(0, "Total questions must be positive")
+    .optional(),
+  passing_score: z
+    .number()
+    .min(0, "Passing score must be positive")
+    .max(100, "Passing score cannot exceed 100")
+    .optional(),
+  status: TestStatusEnum.optional(),
+  instructions: z.string().optional(),
+});
+
+// Update Test Request Schema
+export const UpdateTestRequestSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Test name is required")
+      .max(255, "Test name is too long")
+      .optional(),
+    description: z.string().optional(),
+    module_type: ModuleTypeEnum.optional(),
+    category: CategoryEnum.optional(),
+    time_limit: z
+      .number()
+      .min(1, "Time limit must be at least 1 minute")
+      .optional(),
+    icon_url: z
+      .string()
+      .url("Invalid URL format")
+      .max(500, "URL is too long")
+      .optional(),
+    card_color: z.string().max(100, "Card color is too long").optional(),
+    test_prerequisites: z
+      .array(z.string().uuid("Invalid UUID format"))
+      .max(10, "Too many prerequisites")
+      .optional(),
+    display_order: z
+      .number()
+      .min(0, "Display order must be positive")
+      .optional(),
+    subcategory: z
+      .array(z.string())
+      .max(2, "Maximum 2 subcategories allowed")
+      .optional(),
+    total_questions: z
+      .number()
+      .min(0, "Total questions must be positive")
+      .optional(),
+    passing_score: z
+      .number()
+      .min(0, "Passing score must be positive")
+      .max(100, "Passing score cannot exceed 100")
+      .optional(),
+    status: TestStatusEnum.optional(),
+    instructions: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // At least one field must be provided for update
+      const hasAtLeastOneField = Object.values(data).some(
+        (value) => value !== undefined
+      );
+      return hasAtLeastOneField;
+    },
+    {
+      message: "At least one field must be provided for update",
+      path: ["root"],
+    }
+  );
+
+// Update Test By ID Request Schema (Path Parameters)
+export const UpdateTestByIdRequestSchema = z.object({
+  testId: z.string().uuid("Invalid test ID format"),
+});
+
+// Delete Test By ID Request Schema (Path Parameters)
+export const DeleteTestByIdRequestSchema = z.object({
+  testId: z.string().uuid("Invalid test ID format"),
+});
+
 // Get Tests Request Schema (Query Parameters)
 export const GetTestsRequestSchema = z.object({
   // Pagination
@@ -120,6 +230,35 @@ export const TestDataSchema = z.object({
   updated_by: z.string().uuid().nullable(),
 });
 
+// Create Test Response Schema
+export const CreateTestResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: TestDataSchema,
+  timestamp: z.string(),
+});
+
+// Update Test Response Schema
+export const UpdateTestResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: TestDataSchema,
+  timestamp: z.string(),
+});
+
+// Delete Test Response Schema
+export const DeleteTestResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    category: CategoryEnum,
+    deleted_at: z.string().datetime(),
+  }),
+  timestamp: z.string(),
+});
+
 // Get Test By ID Response Schema
 export const GetTestByIdResponseSchema = z.object({
   success: z.literal(true),
@@ -200,6 +339,13 @@ export type ModuleType = z.infer<typeof ModuleTypeEnum>;
 export type Category = z.infer<typeof CategoryEnum>;
 export type TestStatus = z.infer<typeof TestStatusEnum>;
 
+export type CreateTestRequest = z.infer<typeof CreateTestRequestSchema>;
+export type CreateTestResponse = z.infer<typeof CreateTestResponseSchema>;
+export type UpdateTestRequest = z.infer<typeof UpdateTestRequestSchema>;
+export type UpdateTestByIdRequest = z.infer<typeof UpdateTestByIdRequestSchema>;
+export type UpdateTestResponse = z.infer<typeof UpdateTestResponseSchema>;
+export type DeleteTestByIdRequest = z.infer<typeof DeleteTestByIdRequestSchema>;
+export type DeleteTestResponse = z.infer<typeof DeleteTestResponseSchema>;
 export type GetTestsRequest = z.infer<typeof GetTestsRequestSchema>;
 export type GetTestsResponse = z.infer<typeof GetTestsResponseSchema>;
 export type GetTestByIdRequest = z.infer<typeof GetTestByIdRequestSchema>;
@@ -243,7 +389,7 @@ export type UpdateTestDB = {
   display_order?: number;
   subcategory?: string[] | null;
   total_questions?: number;
-  passing_score?: number | null;
+  passing_score?: string | null;
   status?: TestStatus;
   instructions?: string | null;
   updated_at: Date;
@@ -286,6 +432,76 @@ export type TestFilterOptions = {
   categories: { value: Category; label: string }[];
   statuses: { value: TestStatus; label: string }[];
 };
+
+// ==================== VALIDATION HELPERS ====================
+
+// Category validation by module type
+export const CATEGORY_MODULE_MAPPING: Record<ModuleType, Category[]> = {
+  intelligence: ["wais", "raven", "army_alpha", "iq"],
+  personality: ["mbti", "big_five", "papi_kostick", "epps", "disc"],
+  aptitude: ["kraepelin", "pauli"],
+  interest: ["riasec"],
+  projective: ["wartegg", "dap", "htp"],
+  cognitive: ["eq"],
+};
+
+// Helper function to validate category for module type
+export function validateCategoryForModuleType(
+  category: Category,
+  moduleType: ModuleType
+): boolean {
+  return CATEGORY_MODULE_MAPPING[moduleType].includes(category);
+}
+
+// Default time limits by category (in minutes)
+export const DEFAULT_TIME_LIMITS: Record<Category, number> = {
+  wais: 120,
+  mbti: 30,
+  wartegg: 45,
+  riasec: 25,
+  kraepelin: 60,
+  pauli: 60,
+  big_five: 20,
+  papi_kostick: 30,
+  dap: 30,
+  raven: 45,
+  epps: 40,
+  army_alpha: 90,
+  htp: 60,
+  disc: 15,
+  iq: 90,
+  eq: 25,
+};
+
+// Helper function to get default time limit
+export function getDefaultTimeLimitByCategory(category: Category): number {
+  return DEFAULT_TIME_LIMITS[category];
+}
+
+// Recommended card colors by category
+export const RECOMMENDED_CARD_COLORS: Record<Category, string> = {
+  wais: "from-blue-500 to-blue-600",
+  mbti: "from-purple-500 to-purple-600",
+  wartegg: "from-green-500 to-green-600",
+  riasec: "from-orange-500 to-orange-600",
+  kraepelin: "from-red-500 to-red-600",
+  pauli: "from-red-400 to-red-500",
+  big_five: "from-indigo-500 to-indigo-600",
+  papi_kostick: "from-pink-500 to-pink-600",
+  dap: "from-teal-500 to-teal-600",
+  raven: "from-slate-500 to-slate-600",
+  epps: "from-violet-500 to-violet-600",
+  army_alpha: "from-amber-500 to-amber-600",
+  htp: "from-emerald-500 to-emerald-600",
+  disc: "from-cyan-500 to-cyan-600",
+  iq: "from-sky-500 to-sky-600",
+  eq: "from-rose-500 to-rose-600",
+};
+
+// Helper function to get recommended card color
+export function getRecommendedCardColorByCategory(category: Category): string {
+  return RECOMMENDED_CARD_COLORS[category];
+}
 
 // ==================== CONSTANTS ====================
 export const TEST_MODULE_TYPE_LABELS: Record<ModuleType, string> = {
