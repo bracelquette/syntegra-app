@@ -1,10 +1,12 @@
 import { Context } from "hono";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   getDbFromEnv,
   testSessions,
   sessionModules,
+  sessionParticipants,
   tests,
+  users,
   isDatabaseConfigured,
 } from "../../db";
 import { getEnv, type CloudflareBindings } from "../../lib/env";
@@ -15,6 +17,7 @@ import {
   isSessionActive,
   isSessionExpired,
   getTimeRemaining,
+  isParticipantLinkExpired,
 } from "shared-types";
 
 export async function getSessionByCodeHandler(
@@ -39,8 +42,13 @@ export async function getSessionByCodeHandler(
       return c.json(errorResponse, 503);
     }
 
-    // Get path parameters (already validated by zValidator)
+    // Get path parameters
     const { sessionCode } = c.req.param() as GetSessionByCodeRequest;
+
+    // Get query parameters for participant validation
+    const participantToken = c.req.query("token"); // Optional unique token
+    const participantNik = c.req.query("nik"); // Alternative: NIK-based access
+    const participantEmail = c.req.query("email"); // Alternative: Email-based access
 
     // Get database connection
     const env = getEnv(c);
@@ -81,6 +89,184 @@ export async function getSessionByCodeHandler(
       };
       return c.json(errorResponse, 404);
     }
+
+    // ==================== PARTICIPANT VALIDATION ====================
+    let authenticatedParticipant = null;
+    let participantValidationMethod = "none";
+
+    // Method 1: Token-based validation (most secure)
+    if (participantToken) {
+      const [tokenParticipant] = await db
+        .select({
+          participant_id: sessionParticipants.id,
+          user_id: sessionParticipants.user_id,
+          status: sessionParticipants.status,
+          unique_link: sessionParticipants.unique_link,
+          link_expires_at: sessionParticipants.link_expires_at,
+          registered_at: sessionParticipants.registered_at,
+          user_name: users.name,
+          user_nik: users.nik,
+          user_email: users.email,
+          user_is_active: users.is_active,
+        })
+        .from(sessionParticipants)
+        .innerJoin(users, eq(sessionParticipants.user_id, users.id))
+        .where(
+          and(
+            eq(sessionParticipants.session_id, session.id),
+            eq(sessionParticipants.unique_link, participantToken)
+          )
+        )
+        .limit(1);
+
+      if (tokenParticipant) {
+        // Check if token is expired
+        if (
+          tokenParticipant.link_expires_at &&
+          isParticipantLinkExpired(tokenParticipant.link_expires_at)
+        ) {
+          const errorResponse: SessionErrorResponse = {
+            success: false,
+            message: "Access link has expired",
+            errors: [
+              {
+                field: "token",
+                message:
+                  "Your access link has expired. Please contact the administrator for a new link.",
+                code: "LINK_EXPIRED",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 410); // Gone
+        }
+
+        // Check if participant is active
+        if (!tokenParticipant.user_is_active) {
+          const errorResponse: SessionErrorResponse = {
+            success: false,
+            message: "Account is inactive",
+            errors: [
+              {
+                field: "participant",
+                message:
+                  "Your account has been deactivated. Please contact the administrator.",
+                code: "PARTICIPANT_INACTIVE",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 403);
+        }
+
+        authenticatedParticipant = tokenParticipant;
+        participantValidationMethod = "token";
+      }
+    }
+
+    // Method 2: NIK-based validation (fallback)
+    if (!authenticatedParticipant && participantNik) {
+      const [nikParticipant] = await db
+        .select({
+          participant_id: sessionParticipants.id,
+          user_id: sessionParticipants.user_id,
+          status: sessionParticipants.status,
+          unique_link: sessionParticipants.unique_link,
+          link_expires_at: sessionParticipants.link_expires_at,
+          registered_at: sessionParticipants.registered_at,
+          user_name: users.name,
+          user_nik: users.nik,
+          user_email: users.email,
+          user_is_active: users.is_active,
+        })
+        .from(sessionParticipants)
+        .innerJoin(users, eq(sessionParticipants.user_id, users.id))
+        .where(
+          and(
+            eq(sessionParticipants.session_id, session.id),
+            eq(users.nik, participantNik),
+            eq(users.is_active, true)
+          )
+        )
+        .limit(1);
+
+      if (nikParticipant) {
+        authenticatedParticipant = nikParticipant;
+        participantValidationMethod = "nik";
+      }
+    }
+
+    // Method 3: Email-based validation (fallback)
+    if (!authenticatedParticipant && participantEmail) {
+      const [emailParticipant] = await db
+        .select({
+          participant_id: sessionParticipants.id,
+          user_id: sessionParticipants.user_id,
+          status: sessionParticipants.status,
+          unique_link: sessionParticipants.unique_link,
+          link_expires_at: sessionParticipants.link_expires_at,
+          registered_at: sessionParticipants.registered_at,
+          user_name: users.name,
+          user_nik: users.nik,
+          user_email: users.email,
+          user_is_active: users.is_active,
+        })
+        .from(sessionParticipants)
+        .innerJoin(users, eq(sessionParticipants.user_id, users.id))
+        .where(
+          and(
+            eq(sessionParticipants.session_id, session.id),
+            eq(users.email, participantEmail),
+            eq(users.is_active, true)
+          )
+        )
+        .limit(1);
+
+      if (emailParticipant) {
+        authenticatedParticipant = emailParticipant;
+        participantValidationMethod = "email";
+      }
+    }
+
+    // ==================== PARTICIPANT ACCESS VALIDATION ====================
+
+    // If no participant validation provided, require it
+    if (!participantToken && !participantNik && !participantEmail) {
+      const errorResponse: SessionErrorResponse = {
+        success: false,
+        message: "Participant identification required",
+        errors: [
+          {
+            field: "authentication",
+            message:
+              "Please provide your access token, NIK, or email to access this session.",
+            code: "PARTICIPANT_IDENTIFICATION_REQUIRED",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+
+    // If participant validation was attempted but failed
+    if (!authenticatedParticipant) {
+      const errorResponse: SessionErrorResponse = {
+        success: false,
+        message: "Participant not registered for this session",
+        errors: [
+          {
+            field: "participant",
+            message:
+              "You are not registered for this test session. Please check your invitation or contact the administrator.",
+            code: "PARTICIPANT_NOT_REGISTERED",
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 403);
+    }
+
+    // ==================== SESSION STATUS VALIDATION ====================
 
     // Calculate session status
     const now = new Date();
@@ -128,17 +314,33 @@ export async function getSessionByCodeHandler(
         const remainingHours = Math.floor(timeRemaining / 60);
         const remainingMinutes = timeRemaining % 60;
         if (remainingHours > 0) {
-          accessMessage = `Test session is active. Time remaining: ${remainingHours}h ${remainingMinutes}m`;
+          accessMessage = `Welcome, ${authenticatedParticipant.user_name}! Test session is active. Time remaining: ${remainingHours}h ${remainingMinutes}m`;
         } else {
-          accessMessage = `Test session is active. Time remaining: ${remainingMinutes} minutes`;
+          accessMessage = `Welcome, ${authenticatedParticipant.user_name}! Test session is active. Time remaining: ${remainingMinutes} minutes`;
         }
       } else if (session.allow_late_entry && timeRemaining > 0) {
         isAccessible = true;
-        accessMessage = "Late entry is allowed for this session.";
+        accessMessage = `Welcome, ${authenticatedParticipant.user_name}! Late entry is allowed for this session.`;
       }
     } else {
       accessMessage = "Test session is not currently available.";
     }
+
+    // ==================== PARTICIPANT STATUS VALIDATION ====================
+
+    // Check participant status for additional restrictions
+    if (isAccessible) {
+      if (authenticatedParticipant.status === "completed") {
+        isAccessible = false;
+        accessMessage = "You have already completed this test session.";
+      } else if (authenticatedParticipant.status === "no_show") {
+        isAccessible = false;
+        accessMessage =
+          "Your participation status is marked as 'no show'. Please contact the administrator.";
+      }
+    }
+
+    // ==================== GET SESSION MODULES ====================
 
     // Get session modules with test details
     const sessionModulesWithTests = await db
@@ -174,6 +376,28 @@ export async function getSessionByCodeHandler(
       is_required: module.is_required ?? true,
     }));
 
+    // ==================== UPDATE PARTICIPANT STATUS ====================
+
+    // If participant is accessing for the first time and session is accessible
+    if (isAccessible && authenticatedParticipant.status === "invited") {
+      // Update participant status to "registered"
+      await db
+        .update(sessionParticipants)
+        .set({
+          status: "registered",
+          registered_at: new Date(),
+        })
+        .where(
+          eq(sessionParticipants.id, authenticatedParticipant.participant_id)
+        );
+
+      console.log(
+        `📝 Participant ${authenticatedParticipant.user_name} auto-registered for session ${session.session_name}`
+      );
+    }
+
+    // ==================== PREPARE RESPONSE ====================
+
     // Prepare response data
     const responseData = {
       id: session.id,
@@ -189,20 +413,30 @@ export async function getSessionByCodeHandler(
       is_expired: isExpired,
       time_remaining: timeRemaining,
       session_modules: sessionModulesForResponse,
+
+      // Participant-specific information
+      participant: isAccessible
+        ? {
+            id: authenticatedParticipant.participant_id,
+            name: authenticatedParticipant.user_name,
+            nik: authenticatedParticipant.user_nik,
+            email: authenticatedParticipant.user_email,
+            status: authenticatedParticipant.status,
+            validation_method: participantValidationMethod,
+          }
+        : null,
     };
 
     const response: GetSessionByCodeResponse = {
       success: true,
-      message: isAccessible
-        ? `Test session for ${session.target_position} is ready to start`
-        : accessMessage,
+      message: accessMessage,
       data: responseData,
       timestamp: new Date().toISOString(),
     };
 
-    // Log session access attempt
+    // Log session access attempt with participant info
     console.log(
-      `📋 Session access attempt: ${sessionCode} (${session.session_name}) - ${isAccessible ? "ALLOWED" : "DENIED"} - ${accessMessage}`
+      `📋 Session access: ${sessionCode} by ${authenticatedParticipant.user_name} (${authenticatedParticipant.user_nik}) via ${participantValidationMethod} - ${isAccessible ? "ALLOWED" : "DENIED"} - ${accessMessage}`
     );
 
     // Return appropriate status code based on accessibility
@@ -218,7 +452,10 @@ export async function getSessionByCodeHandler(
 
     return c.json(response, statusCode);
   } catch (error) {
-    console.error("Error getting session by code:", error);
+    console.error(
+      "Error getting session by code with participant validation:",
+      error
+    );
 
     // Get environment for error handling
     const env = getEnv(c);
