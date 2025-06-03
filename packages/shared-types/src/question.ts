@@ -384,6 +384,45 @@ export const ReorderQuestionsResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+// Update Question Sequence Request Schema (Body)
+export const UpdateQuestionSequenceRequestSchema = z.object({
+  sequence: z
+    .number()
+    .min(1, "Sequence must be at least 1")
+    .int("Sequence must be an integer"),
+});
+
+// Update Question Sequence By ID Request Schema (Path Parameters)
+export const UpdateQuestionSequenceByIdRequestSchema = z.object({
+  testId: z.string().uuid("Invalid test ID format"),
+  questionId: z.string().uuid("Invalid question ID format"),
+});
+
+// Update Question Sequence Response Schema
+export const UpdateQuestionSequenceResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    id: z.string().uuid(),
+    test_id: z.string().uuid(),
+    question: z.string(),
+    old_sequence: z.number(),
+    new_sequence: z.number(),
+    updated_at: z.date(),
+  }),
+  conflicts: z
+    .array(
+      z.object({
+        question_id: z.string().uuid(),
+        question: z.string(),
+        old_sequence: z.number(),
+        new_sequence: z.number(),
+      })
+    )
+    .optional(), // Questions that had their sequence automatically adjusted
+  timestamp: z.string(),
+});
+
 // ==================== TYPE EXPORTS ====================
 export type QuestionType = z.infer<typeof QuestionTypeEnum>;
 export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
@@ -444,6 +483,15 @@ export type ReorderQuestionsRequest = z.infer<
 export type ReorderQuestionsResponse = z.infer<
   typeof ReorderQuestionsResponseSchema
 >;
+export type UpdateQuestionSequenceRequest = z.infer<
+  typeof UpdateQuestionSequenceRequestSchema
+>;
+export type UpdateQuestionSequenceByIdRequest = z.infer<
+  typeof UpdateQuestionSequenceByIdRequestSchema
+>;
+export type UpdateQuestionSequenceResponse = z.infer<
+  typeof UpdateQuestionSequenceResponseSchema
+>;
 
 // ==================== DATABASE TYPES ====================
 export type CreateQuestionDB = {
@@ -471,6 +519,11 @@ export type UpdateQuestionDB = {
   audio_url?: string | null;
   scoring_key?: ScoringKey | null;
   is_required?: boolean;
+  updated_at: Date;
+};
+
+export type UpdateQuestionSequenceDB = {
+  sequence: number;
   updated_at: Date;
 };
 

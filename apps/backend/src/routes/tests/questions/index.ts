@@ -12,6 +12,8 @@ import {
   DeleteQuestionByIdRequestSchema,
   BulkCreateQuestionsRequestSchema,
   ReorderQuestionsRequestSchema,
+  UpdateQuestionSequenceRequestSchema,
+  UpdateQuestionSequenceByIdRequestSchema,
   type QuestionErrorResponse,
 } from "shared-types";
 import { createQuestionHandler } from "./question.create";
@@ -22,6 +24,7 @@ import { deleteQuestionHandler } from "./question.delete";
 import { getQuestionStatsHandler } from "./question.stats";
 import { bulkCreateQuestionsHandler } from "./question.bulk-create";
 import { reorderQuestionsHandler } from "./question.reorder";
+import { updateQuestionSequenceHandler } from "./question.sequence";
 import { authenticateUser, requireAdmin } from "@/middleware/auth";
 import { generalApiRateLimit } from "@/middleware/rateLimiter";
 
@@ -316,6 +319,47 @@ questionRoutes.put(
     }
   }),
   updateQuestionHandler
+);
+
+// ==================== SEQUENCE UPDATE ROUTE (Admin only) ====================
+
+// Update Question Sequence (Admin only)
+questionRoutes.put(
+  "/:questionId/sequence",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("param", UpdateQuestionSequenceByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: QuestionErrorResponse = {
+        success: false,
+        message: "Invalid question or test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  zValidator("json", UpdateQuestionSequenceRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: QuestionErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  updateQuestionSequenceHandler
 );
 
 // Delete Question (Admin only)
