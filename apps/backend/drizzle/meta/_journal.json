@@ -22,6 +22,20 @@
       "when": 1748871354084,
       "tag": "0002_steep_ironclad",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748926322180,
+      "tag": "0003_smart_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1748926478871,
+      "tag": "0004_special_firedrake",
+      "breakpoints": true
     }
   ]
 }

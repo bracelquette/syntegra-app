@@ -17,16 +17,77 @@ interface CSVParseResult {
   dataStartRow?: number;
 }
 
+function parseSyntegraCSVSingleLine(longLine: string): string[] {
+  const lines: string[] = [];
+
+  // Step 1: Deteksi dan pisahkan bagian title
+  if (longLine.includes("DATA KARYAWAN")) {
+    const dataKaryawanEnd =
+      longLine.indexOf("DATA KARYAWAN") + "DATA KARYAWAN".length;
+    const titleLine = longLine.substring(0, dataKaryawanEnd);
+    lines.push(titleLine);
+  }
+
+  if (longLine.includes("PT. SYNTEGRA")) {
+    const companyStart = longLine.indexOf("PT. SYNTEGRA");
+    const nextCommaPattern = longLine.indexOf("NO,ID KARYAWAN", companyStart);
+    const companyEnd =
+      nextCommaPattern > -1 ? nextCommaPattern : longLine.length;
+    const companyLine = longLine.substring(companyStart, companyEnd);
+    lines.push(companyLine);
+  }
+
+  // Step 2: Deteksi header kolom
+  const headerPattern = /NO,ID KARYAWAN,NAMA,JABATAN/;
+  const headerMatch = headerPattern.exec(longLine);
+
+  if (!headerMatch) {
+    return lines.length > 0 ? lines : [longLine];
+  }
+
+  // Step 3: Temukan data rows berdasarkan pattern O-31-
+  const dataRowPattern = /,(\d+),O-31-\d{6}-\d{5}/g;
+  const dataMatches = [];
+  let match;
+
+  while ((match = dataRowPattern.exec(longLine)) !== null) {
+    dataMatches.push({
+      index: match.index,
+      rowNumber: match[1],
+    });
+  }
+
+  if (dataMatches.length > 0) {
+    // Header: dari posisi header sampai data row pertama
+    const headerStart = headerMatch.index;
+    const headerEnd = dataMatches[0].index;
+    const headerLine = longLine.substring(headerStart, headerEnd);
+    lines.push(headerLine);
+
+    // Data rows: dari setiap match sampai match berikutnya
+    for (let i = 0; i < dataMatches.length; i++) {
+      const rowStart = dataMatches[i].index + 1; // Skip leading comma
+      const rowEnd =
+        i < dataMatches.length - 1 ? dataMatches[i + 1].index : longLine.length;
+
+      const dataRow = longLine.substring(rowStart, rowEnd);
+      if (dataRow.trim()) {
+        lines.push(dataRow);
+      }
+    }
+  }
+
+  return lines;
+}
+
 export function parseCSVContentSmart(csvContent: string): CSVParseResult {
   try {
-    const lines = csvContent.split("\n").filter((line) => line.trim());
+    let lines = csvContent.split("\n").filter((line) => line.trim());
 
-    if (lines.length === 0) {
-      return {
-        success: false,
-        error: "Empty CSV file",
-        totalRows: 0,
-      };
+    if (lines.length === 1 && lines[0].length > 500) {
+      console.log("Detected single long line, parsing Syntegra format");
+      lines = parseSyntegraCSVSingleLine(lines[0]);
+      console.log(`Split single line into ${lines.length} lines`);
     }
 
     // For this specific format, we know headers are on line 5 (index 4)
@@ -269,7 +330,7 @@ function normalizeSyntegraGender(value: any): string | undefined {
     return "female";
   }
 
-  return undefined;
+  return "other";
 }
 
 function normalizeSyntegraPhoneNumber(value: any): string {

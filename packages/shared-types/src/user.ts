@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ==================== ENUMS ====================
 export const RoleEnum = z.enum(["admin", "participant"]);
-export const GenderEnum = z.enum(["male", "female"]);
+export const GenderEnum = z.enum(["male", "female", "other"]);
 export const ReligionEnum = z.enum([
   "islam",
   "kristen",

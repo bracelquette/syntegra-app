@@ -166,6 +166,7 @@ export const GenderMappingSchema = z.object({
   female: z
     .array(z.string())
     .default(["P", "Perempuan", "Female", "F", "PEREMPUAN"]),
+  other: z.array(z.string()).default(["", "Other", "Lainnya", "LAINNYA"]),
 });
 
 // Religion mapping forCSV

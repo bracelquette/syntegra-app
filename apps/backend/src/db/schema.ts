@@ -16,7 +16,7 @@ import { relations } from "drizzle-orm";
 
 // ==================== ENUMS ====================
 export const roleEnum = pgEnum("role", ["admin", "participant"]);
-export const genderEnum = pgEnum("gender", ["male", "female"]);
+export const genderEnum = pgEnum("gender", ["male", "female", "other"]);
 export const religionEnum = pgEnum("religion", [
   "islam",
   "kristen",
@@ -128,8 +128,8 @@ export const users = pgTable(
     password_reset_expires: timestamp("password_reset_expires"),
 
     // Profile fields
-    gender: genderEnum("gender").notNull(),
-    phone: varchar("phone", { length: 20 }).notNull(),
+    gender: genderEnum("gender"),
+    phone: varchar("phone", { length: 20 }),
     birth_place: varchar("birth_place", { length: 100 }),
     birth_date: timestamp("birth_date"),
     religion: religionEnum("religion"),

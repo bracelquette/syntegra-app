@@ -77,7 +77,7 @@ export const AuthUserDataSchema = z.object({
   name: z.string(),
   role: z.enum(["admin", "participant"]),
   email: z.string().email(),
-  gender: z.enum(["male", "female"]),
+  gender: z.enum(["male", "female", "other"]),
   phone: z.string(),
   birth_place: z.string().nullable(),
   birth_date: z.date().nullable(),
