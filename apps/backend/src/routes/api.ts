@@ -6,6 +6,7 @@ import { getEnv, type CloudflareBindings } from "../lib/env";
 import { userRoutes } from "./users";
 import { authRoutes } from "./auth";
 import { testRoutes } from "./tests";
+import { sessionRoutes } from "./sessions";
 
 const api = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -57,6 +58,7 @@ api.use(
 api.route("/auth", authRoutes);
 api.route("/users", userRoutes);
 api.route("/tests", testRoutes);
+api.route("/sessions", sessionRoutes);
 
 // 404 handler for API routes
 api.notFound((c) => {

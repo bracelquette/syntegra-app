@@ -13,5 +13,8 @@ export * from "./test";
 // Export all question-related types and schemas
 export * from "./question";
 
+// Export all session-related types and schemas
+export * from "./session";
+
 // Re-export zod for convenience
 export { z } from "zod";
