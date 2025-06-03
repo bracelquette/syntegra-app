@@ -9,6 +9,8 @@ import {
   UpdateTestByIdRequestSchema,
   DeleteTestByIdRequestSchema,
   type TestErrorResponse,
+  UpdateTestDisplayOrderByIdRequestSchema,
+  UpdateTestDisplayOrderRequestSchema,
 } from "shared-types";
 import { getTestsListHandler } from "./test.list";
 import { getTestByIdHandler } from "./test.get";
@@ -19,6 +21,7 @@ import { deleteTestHandler } from "./test.delete";
 import { getCategoriesHandler } from "./test.categories";
 import { getModuleTypesHandler } from "./test.module-types";
 import { getTestPrerequisitesHandler } from "./test.prerequisites";
+import { updateTestDisplayOrderHandler } from "./test.display-order";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
 
@@ -340,6 +343,45 @@ testRoutes.put(
     }
   }),
   updateTestHandler
+);
+
+// Update Test Display Order (Admin only) - Specific endpoint for display order management
+testRoutes.put(
+  "/:testId/display-order",
+  generalApiRateLimit,
+  authenticateUser,
+  requireAdmin,
+  zValidator("param", UpdateTestDisplayOrderByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Invalid test ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  zValidator("json", UpdateTestDisplayOrderRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: TestErrorResponse = {
+        success: false,
+        message: "Validation failed",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  updateTestDisplayOrderHandler
 );
 
 // Delete Test (Admin only)

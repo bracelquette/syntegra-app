@@ -383,6 +383,34 @@ export type ModuleTypeOption = {
   total_categories: number;
 };
 
+// ==================== DISPLAY ORDER SCHEMAS ====================
+
+// Update Test Display Order Request Schema (Body)
+export const UpdateTestDisplayOrderRequestSchema = z.object({
+  display_order: z
+    .number()
+    .min(0, "Display order must be positive")
+    .int("Display order must be an integer"),
+});
+
+// Update Test Display Order By ID Request Schema (Path Parameters)
+export const UpdateTestDisplayOrderByIdRequestSchema = z.object({
+  testId: z.string().uuid("Invalid test ID format"),
+});
+
+// Update Test Display Order Response Schema
+export const UpdateTestDisplayOrderResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    display_order: z.number(),
+    updated_at: z.date(),
+  }),
+  timestamp: z.string(),
+});
+
 // ==================== TYPE EXPORTS ====================
 export type ModuleType = z.infer<typeof ModuleTypeEnum>;
 export type Category = z.infer<typeof CategoryEnum>;
@@ -408,6 +436,15 @@ export type GetTestStatsResponse = z.infer<typeof GetTestStatsResponseSchema>;
 export type GetCategoriesResponse = z.infer<typeof GetCategoriesResponseSchema>;
 export type GetModuleTypesResponse = z.infer<
   typeof GetModuleTypesResponseSchema
+>;
+export type UpdateTestDisplayOrderRequest = z.infer<
+  typeof UpdateTestDisplayOrderRequestSchema
+>;
+export type UpdateTestDisplayOrderByIdRequest = z.infer<
+  typeof UpdateTestDisplayOrderByIdRequestSchema
+>;
+export type UpdateTestDisplayOrderResponse = z.infer<
+  typeof UpdateTestDisplayOrderResponseSchema
 >;
 
 // ==================== DATABASE TYPES ====================
@@ -447,6 +484,12 @@ export type UpdateTestDB = {
   instructions?: string | null;
   updated_at: Date;
   updated_by?: string | null;
+};
+
+export type UpdateTestDisplayOrderDB = {
+  display_order: number;
+  updated_at: Date;
+  updated_by: string;
 };
 
 // ==================== UTILITY TYPES ====================
