@@ -16,8 +16,8 @@ import { getSessionByCodeHandler } from "./session.get-by-code";
 import { getSessionsListHandler } from "./session.list";
 import { getSessionByIdHandler } from "./session.get";
 import { getSessionStatsHandler } from "./session.stats";
-// import { updateSessionHandler } from "./session.update";
-// import { deleteSessionHandler } from "./session.delete";
+import { updateSessionHandler } from "./session.update";
+import { deleteSessionHandler } from "./session.delete";
 import { authenticateUser, requireAdmin } from "../../middleware/auth";
 import { generalApiRateLimit } from "../../middleware/rateLimiter";
 
@@ -217,14 +217,7 @@ sessionRoutes.put(
       return c.json(errorResponse, 400);
     }
   }),
-  async (c) => {
-    const errorResponse: SessionErrorResponse = {
-      success: false,
-      message: "Update session not implemented yet",
-      timestamp: new Date().toISOString(),
-    };
-    return c.json(errorResponse, 501);
-  }
+  updateSessionHandler
 );
 
 // Delete Session (Admin only)
@@ -248,14 +241,7 @@ sessionRoutes.delete(
       return c.json(errorResponse, 400);
     }
   }),
-  async (c) => {
-    const errorResponse: SessionErrorResponse = {
-      success: false,
-      message: "Delete session not implemented yet",
-      timestamp: new Date().toISOString(),
-    };
-    return c.json(errorResponse, 501);
-  }
+  deleteSessionHandler
 );
 
 // ==================== SESSION STATUS MANAGEMENT (Admin only) ====================
