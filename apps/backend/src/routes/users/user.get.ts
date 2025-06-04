@@ -144,7 +144,7 @@ export async function getUserByIdHandler(
     // Prepare user data response (exclude sensitive information)
     const userData: UserData = {
       id: user.id,
-      nik: user.nik,
+      nik: user.nik || "",
       name: user.name,
       role: user.role,
       email: user.email,

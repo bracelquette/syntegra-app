@@ -1,4 +1,3 @@
-// apps/backend/src/routes/sessions/session.bulk-add-participants.ts
 import { Context } from "hono";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import {
@@ -166,7 +165,7 @@ export async function bulkAddParticipantsToSessionHandler(
     const validUsers = await db
       .select({
         id: users.id,
-        nik: users.nik,
+        nik: users.nik || "",
         name: users.name,
         email: users.email,
         phone: users.phone,
@@ -324,7 +323,7 @@ export async function bulkAddParticipantsToSessionHandler(
           created_at: participant.created_at,
           user: {
             id: user.id,
-            nik: user.nik,
+            nik: user.nik || "",
             name: user.name,
             email: user.email,
             phone: user.phone,

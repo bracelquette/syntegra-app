@@ -199,7 +199,7 @@ export async function getSessionParticipantsHandler(
 
         // User data
         user_id_ref: users.id,
-        user_nik: users.nik,
+        user_nik: users.nik || "",
         user_name: users.name,
         user_email: users.email,
         user_phone: users.phone,
@@ -240,7 +240,7 @@ export async function getSessionParticipantsHandler(
         created_at: participant.participant_created_at,
         user: {
           id: participant.user_id_ref,
-          nik: participant.user_nik,
+          nik: participant.user_nik || "",
           name: participant.user_name,
           email: participant.user_email,
           phone: participant.user_phone,

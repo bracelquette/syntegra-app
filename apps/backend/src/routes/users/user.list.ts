@@ -185,7 +185,7 @@ export async function getUsersListHandler(
       message: `Successfully retrieved ${usersList.length} users`,
       data: usersList.map((user) => ({
         id: user.id,
-        nik: user.nik,
+        nik: user.nik || "",
         name: user.name,
         role: user.role,
         email: user.email,

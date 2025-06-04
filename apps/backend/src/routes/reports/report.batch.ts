@@ -84,7 +84,7 @@ export async function getBatchReportHandler(
         user_id: users.id,
         name: users.name,
         email: users.email,
-        nik: users.nik,
+        nik: users.nik || "",
         gender: users.gender,
         birth_date: users.birth_date,
         education: users.education,
@@ -418,7 +418,9 @@ export async function getBatchReportHandler(
           user_id: participant.user_id,
           name: participant.name,
           email: participant.email,
-          nik: queryParams.include_personal_data ? participant.nik : "***",
+          nik: queryParams.include_personal_data
+            ? participant.nik || ""
+            : "***",
           gender: queryParams.include_personal_data ? participant.gender : null,
           birth_date:
             queryParams.include_personal_data && participant.birth_date

@@ -330,7 +330,7 @@ export async function addParticipantToSessionHandler(
       created_at: newParticipant.created_at,
       user: {
         id: user.id,
-        nik: user.nik,
+        nik: user.nik || "",
         name: user.name,
         email: user.email,
         phone: user.phone,

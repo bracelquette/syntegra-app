@@ -10,6 +10,15 @@ import {
   type CreateUserDB,
 } from "shared-types";
 
+// Helper function to generate admin NIK (AUTO-ADM-YYYY-XXXX)
+function generateAdminNIK(): string {
+  const year = new Date().getFullYear();
+  const randomNum = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `AUTO-ADM-${year}-${randomNum}`;
+}
+
 export async function createUserHandler(
   c: Context<{ Bindings: CloudflareBindings }>
 ) {
@@ -60,6 +69,14 @@ export async function createUserHandler(
         isBootstrapAdminCreation = true;
         console.log("🚀 Bootstrap: Creating first admin user");
       }
+    }
+
+    // Prepare NIK - auto-generate for admin if not provided
+    let finalNik: string | null = data.nik || null;
+
+    if (data.role === "admin" && !finalNik) {
+      finalNik = generateAdminNIK();
+      console.log(`Generated NIK for admin: ${finalNik}`);
     }
 
     // Validation logic based on creation type
@@ -165,6 +182,23 @@ export async function createUserHandler(
         };
         return c.json(errorResponse, 400);
       }
+
+      // Participants must have NIK
+      if (data.role === "participant" && !finalNik) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "NIK is required for participant users",
+          errors: [
+            {
+              field: "nik",
+              message: "Participant users must have a NIK",
+              code: "NIK_REQUIRED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
     } else if (isSelfRegistration) {
       // Self-registration - only allow participant role (unless bootstrap admin)
       if (data.role === "admin" && !isBootstrapAdminCreation) {
@@ -204,21 +238,44 @@ export async function createUserHandler(
         // Force role to participant for self-registration
         data.role = "participant";
         console.log(`Self-registration for participant: ${data.email}`);
+
+        // Participants must have NIK
+        if (!finalNik) {
+          const errorResponse: ErrorResponse = {
+            success: false,
+            message: "NIK is required for participant registration",
+            errors: [
+              {
+                field: "nik",
+                message: "Participant users must have a NIK",
+                code: "NIK_REQUIRED",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 400);
+        }
       }
     }
 
-    // Check if NIK or email already exists
+    // Check if NIK or email already exists (only check NIK if provided)
+    const conditions = [eq(users.email, data.email)];
+    if (finalNik) {
+      conditions.push(eq(users.nik, finalNik));
+    }
+
     const existingUser = await db
       .select({
         nik: users.nik,
         email: users.email,
       })
       .from(users)
-      .where(or(eq(users.nik, data.nik), eq(users.email, data.email)))
+      .where(or(...conditions))
       .limit(1);
 
     if (existingUser.length > 0) {
-      const conflictField = existingUser[0].nik === data.nik ? "NIK" : "email";
+      const conflictField =
+        existingUser[0].email === data.email ? "email" : "NIK";
       const errorResponse: ErrorResponse = {
         success: false,
         message: `User with this ${conflictField} already exists`,
@@ -242,7 +299,7 @@ export async function createUserHandler(
 
     // Prepare data for database insertion
     const insertData: CreateUserDB & { password?: string | null } = {
-      nik: data.nik,
+      nik: finalNik || "", // Ensure NIK is never null for database
       name: data.name,
       role: data.role,
       email: data.email,
@@ -282,7 +339,7 @@ export async function createUserHandler(
     // Prepare success response (exclude sensitive data)
     const responseData = {
       id: newUser.id,
-      nik: newUser.nik,
+      nik: newUser.nik || "", // Convert null to empty string for response
       name: newUser.name,
       role: newUser.role,
       email: newUser.email,
@@ -319,7 +376,7 @@ export async function createUserHandler(
 
     const response: CreateUserResponse = {
       success: true,
-      message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully`,
+      message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully${finalNik !== data.nik ? ` (NIK auto-generated: ${finalNik})` : ""}`,
       data: responseData,
       timestamp: new Date().toISOString(),
     };

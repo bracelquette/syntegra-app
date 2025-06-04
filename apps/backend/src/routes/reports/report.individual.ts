@@ -556,7 +556,7 @@ export async function getIndividualReportHandler(
         id: targetUser.id,
         name: targetUser.name,
         email: targetUser.email,
-        nik: targetUser.nik,
+        nik: targetUser.nik || "",
         gender: targetUser.gender,
         birth_date: targetUser.birth_date?.toISOString() || null,
         education: targetUser.education,

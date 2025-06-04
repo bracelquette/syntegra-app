@@ -547,7 +547,7 @@ export async function createUsersFromCSVHandler(
               status: "success",
               user_data: {
                 id: createdUser.id,
-                nik: createdUser.nik,
+                nik: createdUser.nik || "",
                 name: createdUser.name,
                 role: createdUser.role,
                 email: createdUser.email,

@@ -308,7 +308,7 @@ export async function updateUserHandler(
     // Prepare success response
     const responseData = {
       id: updatedUser.id,
-      nik: updatedUser.nik,
+      nik: updatedUser.nik || "",
       name: updatedUser.name,
       role: updatedUser.role,
       email: updatedUser.email,

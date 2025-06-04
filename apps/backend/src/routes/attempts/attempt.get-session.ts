@@ -246,7 +246,7 @@ export async function getSessionAttemptsHandler(
             id: user.id,
             name: user.name,
             email: user.email,
-            nik: user.nik,
+            nik: user.nik || "",
           },
           session: session
             ? {

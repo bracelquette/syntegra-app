@@ -292,7 +292,7 @@ export async function getUserResultsHandler(
             id: userData.id,
             name: userData.name,
             email: userData.email,
-            nik: userData.nik,
+            nik: userData.nik || "",
           },
           test: {
             id: test.id,

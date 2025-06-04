@@ -116,7 +116,7 @@ export async function getParticipantDashboardHandler(
           id: fullUser.id,
           name: fullUser.name,
           email: fullUser.email,
-          nik: fullUser.nik,
+          nik: fullUser.nik || "",
           role: fullUser.role,
           last_login: fullUser.last_login?.toISOString() || null,
           profile_picture_url: fullUser.profile_picture_url,

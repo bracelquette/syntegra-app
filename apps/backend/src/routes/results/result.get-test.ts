@@ -215,7 +215,7 @@ export async function getTestResultsHandler(
           id: users.id,
           name: users.name,
           email: users.email,
-          nik: users.nik,
+          nik: users.nik || "",
         },
         attempt: testAttempts,
         session: testSessions,
@@ -299,7 +299,7 @@ export async function getTestResultsHandler(
                   id: user.id,
                   name: user.name,
                   email: user.email,
-                  nik: user.nik,
+                  nik: user.nik || "",
                 }
               : undefined,
           test: {

@@ -381,7 +381,7 @@ export async function calculateTestResultHandler(
         id: attempt.user.id,
         name: attempt.user.name,
         email: attempt.user.email,
-        nik: attempt.user.nik,
+        nik: attempt.user.nik || "",
       },
       test: {
         id: attempt.test.id,

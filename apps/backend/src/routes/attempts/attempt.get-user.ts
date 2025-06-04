@@ -237,7 +237,7 @@ export async function getUserAttemptsHandler(
             id: userData.id,
             name: userData.name,
             email: userData.email,
-            nik: userData.nik,
+            nik: userData.nik || "",
           },
           session: session
             ? {

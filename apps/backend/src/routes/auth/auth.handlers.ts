@@ -199,7 +199,7 @@ export async function adminLoginHandler(
       {
         sub: user.id,
         role: user.role,
-        nik: user.nik,
+        nik: user.nik || "",
         email: user.email,
         session_id: sessionId, // Use the same session ID
       },
@@ -370,7 +370,7 @@ export async function participantLoginHandler(
       {
         sub: user.id,
         role: user.role,
-        nik: user.nik,
+        nik: user.nik || "",
         email: user.email,
         session_id: sessionId, // Use the same session ID
       },
@@ -534,7 +534,7 @@ export async function refreshTokenHandler(
       {
         sub: user.id,
         role: user.role,
-        nik: user.nik,
+        nik: user.nik || "",
         email: user.email,
         session_id: sessionId, // Use existing session ID
       },
