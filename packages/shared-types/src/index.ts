@@ -34,5 +34,8 @@ export * from "./dashboard";
 // Export all analytics-related types and schemas
 export * from "./analytics";
 
+// Export all report-related types and schemas
+export * from "./report";
+
 // Re-export zod for convenience
 export { z } from "zod";
