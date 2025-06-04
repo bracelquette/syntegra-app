@@ -158,7 +158,7 @@ function Home() {
                 className="hover:bg-primary/5 transition-all duration-200"
                 asChild
               >
-                <Link to="/">Lanjut Sebagai Admin</Link>
+                <Link to="/admin/login">Lanjut Sebagai Admin</Link>
               </Button>
             </div>
           </div>
