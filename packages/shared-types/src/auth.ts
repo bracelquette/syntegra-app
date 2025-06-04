@@ -73,7 +73,7 @@ export const LogoutRequestSchema = z.object({
 // User Data for Auth Response (tanpa sensitive data)
 export const AuthUserDataSchema = z.object({
   id: z.string().uuid(),
-  nik: z.string(),
+  nik: z.string().nullable(), // Nullable for admin users
   name: z.string(),
   role: z.enum(["admin", "participant"]),
   email: z.string().email(),
@@ -156,7 +156,7 @@ export const AuthSuccessResponseSchema = z.object({
 export const JWTPayloadSchema = z.object({
   sub: z.string().uuid(), // user id
   role: z.enum(["admin", "participant"]),
-  nik: z.string(),
+  nik: z.string().nullable(), // Nullable for admin users
   email: z.string().email(),
   session_id: z.string().uuid(),
   iat: z.number(),
