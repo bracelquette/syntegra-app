@@ -68,7 +68,7 @@ export default function UsersManagementPage() {
   // Filter states
   const [filters, setFilters] = useState<GetUsersRequest>({
     page: 1,
-    limit: 1,
+    limit: 10,
     search: "",
     role: "participant",
     gender: undefined,
@@ -431,47 +431,124 @@ export default function UsersManagementPage() {
               </div>
 
               {/* Pagination */}
-              {usersResponse?.meta && usersResponse.meta.total_pages > 1 && (
-                <div className="flex items-center justify-between py-4">
-                  <div className="text-sm text-muted-foreground">
-                    Menampilkan {usersResponse.meta.current_page} dari{" "}
-                    {usersResponse.meta.total_pages} halaman
+              {usersResponse?.meta && (
+                <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Menampilkan {usersResponse.meta.current_page} dari{" "}
+                      {usersResponse.meta.total_pages} halaman
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Tampilkan
+                      </span>
+                      <Select
+                        value={filters.limit.toString()}
+                        onValueChange={(value) =>
+                          updateFilter("limit", parseInt(value, 10))
+                        }
+                      >
+                        <SelectTrigger className="w-[70px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-sm text-muted-foreground">
+                        per halaman
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() =>
-                              handlePageChange(
-                                Number(usersResponse.meta.current_page) - 1
-                              )
-                            }
-                            className={
-                              usersResponse.meta.has_prev_page
-                                ? "cursor-pointer"
-                                : "cursor-not-allowed opacity-50"
-                            }
-                          />
-                        </PaginationItem>
+                  {usersResponse.meta.total_pages > 1 && (
+                    <div className="flex items-center space-x-2">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              onClick={
+                                usersResponse.meta.has_prev_page
+                                  ? () =>
+                                      handlePageChange(
+                                        Number(
+                                          usersResponse.meta.current_page
+                                        ) - 1
+                                      )
+                                  : undefined
+                              }
+                              className={
+                                usersResponse.meta.has_prev_page
+                                  ? "cursor-pointer hover:bg-accent"
+                                  : "cursor-not-allowed opacity-50 pointer-events-none"
+                              }
+                            />
+                          </PaginationItem>
 
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() =>
-                              handlePageChange(
-                                Number(usersResponse.meta.current_page) + 1
-                              )
-                            }
-                            className={
-                              usersResponse.meta.has_next_page
-                                ? "cursor-pointer"
-                                : "cursor-not-allowed opacity-50"
-                            }
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
+                          {/* Page Numbers */}
+                          {Array.from(
+                            { length: usersResponse.meta.total_pages },
+                            (_, i) => i + 1
+                          )
+                            .filter((pageNum) => {
+                              const current = usersResponse.meta.current_page;
+                              return (
+                                pageNum === 1 ||
+                                pageNum === usersResponse.meta.total_pages ||
+                                (pageNum >= current - 1 &&
+                                  pageNum <= current + 1)
+                              );
+                            })
+                            .map((pageNum, index, array) => (
+                              <React.Fragment key={pageNum}>
+                                {index > 0 &&
+                                  array[index - 1] !== pageNum - 1 && (
+                                    <PaginationItem>
+                                      <span className="px-3 py-2 text-muted-foreground">
+                                        ...
+                                      </span>
+                                    </PaginationItem>
+                                  )}
+                                <PaginationItem>
+                                  <PaginationLink
+                                    onClick={() => handlePageChange(pageNum)}
+                                    isActive={
+                                      pageNum ===
+                                      usersResponse.meta.current_page
+                                    }
+                                    className="cursor-pointer hover:bg-accent"
+                                  >
+                                    {pageNum}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              </React.Fragment>
+                            ))}
+
+                          <PaginationItem>
+                            <PaginationNext
+                              onClick={
+                                usersResponse.meta.has_next_page
+                                  ? () =>
+                                      handlePageChange(
+                                        Number(
+                                          usersResponse.meta.current_page
+                                        ) + 1
+                                      )
+                                  : undefined
+                              }
+                              className={
+                                usersResponse.meta.has_next_page
+                                  ? "cursor-pointer hover:bg-accent"
+                                  : "cursor-not-allowed opacity-50 pointer-events-none"
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
                 </div>
               )}
             </>

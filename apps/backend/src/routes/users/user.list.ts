@@ -31,8 +31,37 @@ export async function getUsersListHandler(
       return c.json(errorResponse, 503);
     }
 
-    // Get query parameters (sudah divalidasi di middleware)
-    const queryParams = c.req.query() as unknown as GetUsersRequest;
+    // Get and parse query parameters
+    const rawQueryParams = c.req.query();
+
+    // Parse and validate pagination parameters
+    const page = Math.max(1, parseInt(rawQueryParams.page || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(rawQueryParams.limit || "10", 10))
+    );
+
+    // Parse other parameters
+    const queryParams = {
+      page,
+      limit,
+      search: rawQueryParams.search || undefined,
+      role: rawQueryParams.role as "admin" | "participant" | undefined,
+      gender: rawQueryParams.gender as "male" | "female" | "other" | undefined,
+      religion: rawQueryParams.religion || undefined,
+      education: rawQueryParams.education || undefined,
+      province: rawQueryParams.province || undefined,
+      regency: rawQueryParams.regency || undefined,
+      is_active: rawQueryParams.is_active
+        ? rawQueryParams.is_active === "true"
+        : undefined,
+      sort_by: rawQueryParams.sort_by || "created_at",
+      sort_order: (rawQueryParams.sort_order as "asc" | "desc") || "desc",
+      created_from: rawQueryParams.created_from || undefined,
+      created_to: rawQueryParams.created_to || undefined,
+    };
+
+    console.log("Parsed query params:", queryParams);
 
     // Get database connection
     const env = getEnv(c);
@@ -66,12 +95,12 @@ export async function getUsersListHandler(
 
     // Religion filter
     if (queryParams.religion) {
-      conditions.push(eq(users.religion, queryParams.religion));
+      conditions.push(eq(users.religion, queryParams.religion as any));
     }
 
     // Education filter
     if (queryParams.education) {
-      conditions.push(eq(users.education, queryParams.education));
+      conditions.push(eq(users.education, queryParams.education as any));
     }
 
     // Active status filter
@@ -112,10 +141,8 @@ export async function getUsersListHandler(
     const total = totalResult.count;
 
     // Calculate pagination
-    const page = queryParams.page;
-    const limit = queryParams.limit;
-    const offset = (page - 1) * limit;
-    const totalPages = Math.ceil(total / limit);
+    const offset = (queryParams.page - 1) * queryParams.limit;
+    const totalPages = Math.ceil(total / queryParams.limit);
 
     // Build sorting
     const validSortColumns = {
@@ -166,17 +193,17 @@ export async function getUsersListHandler(
       .from(users)
       .where(whereClause)
       .orderBy(sortDirection(sortColumn))
-      .limit(limit)
+      .limit(queryParams.limit)
       .offset(offset);
 
     // Prepare pagination meta
     const meta: PaginationMeta = {
-      current_page: page,
-      per_page: limit,
+      current_page: queryParams.page,
+      per_page: queryParams.limit,
       total: total,
       total_pages: totalPages,
-      has_next_page: page < totalPages,
-      has_prev_page: page > 1,
+      has_next_page: queryParams.page < totalPages,
+      has_prev_page: queryParams.page > 1,
     };
 
     // Prepare success response
