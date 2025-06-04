@@ -1,8 +1,8 @@
 import { Context } from "hono";
-import { eq, or } from "drizzle-orm";
-import { getDbFromEnv, users, isDatabaseConfigured } from "../../db";
-import { getEnv, type CloudflareBindings } from "../../lib/env";
-import { hashPassword, requiresPassword } from "../../lib/auth";
+import { eq, or, count } from "drizzle-orm";
+import { getDbFromEnv, users, isDatabaseConfigured } from "@/db";
+import { getEnv, type CloudflareBindings } from "@/lib/env";
+import { hashPassword } from "@/lib/auth";
 import {
   type CreateUserRequest,
   type CreateUserResponse,
@@ -55,43 +55,95 @@ export async function createUserHandler(
     const isAdminCreation = auth && auth.user.role === "admin";
     const isSelfRegistration = !auth;
 
-    // BOOTSTRAP CHECK: Allow first admin creation without authentication
+    // ADMIN COUNT CHECK: Allow up to 3 admins maximum
     let isBootstrapAdminCreation = false;
-    if (isSelfRegistration && data.role === "admin") {
-      // Check if any admin exists in the database
-      const [existingAdmin] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.role, "admin"))
-        .limit(1);
+    let currentAdminCount = 0;
 
-      if (!existingAdmin) {
-        isBootstrapAdminCreation = true;
-        console.log("🚀 Bootstrap: Creating first admin user");
+    if (data.role === "admin") {
+      // Count existing active admins
+      const adminCountResult = await db
+        .select({ count: count() })
+        .from(users)
+        .where(eq(users.role, "admin"));
+
+      currentAdminCount = adminCountResult[0]?.count || 0;
+
+      // Check if creating admin when no authentication (self-registration)
+      if (isSelfRegistration) {
+        if (currentAdminCount === 0) {
+          isBootstrapAdminCreation = true;
+          console.log("🚀 Bootstrap: Creating first admin user");
+        } else if (currentAdminCount < 3) {
+          isBootstrapAdminCreation = true;
+          console.log(`🔧 Creating admin ${currentAdminCount + 1}/3`);
+        }
+      }
+
+      // Validate admin limit (3 maximum)
+      if (currentAdminCount >= 3) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Maximum number of admin users reached",
+          errors: [
+            {
+              field: "role",
+              message:
+                "Cannot create more admin users. Maximum limit is 3 admins.",
+              code: "ADMIN_LIMIT_EXCEEDED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
       }
     }
 
-    // Prepare NIK - auto-generate for admin if not provided
-    let finalNik: string | null = data.nik || null;
+    // Handle NIK logic based on role
+    let finalNik: string | null = null;
 
-    if (data.role === "admin" && !finalNik) {
-      finalNik = generateAdminNIK();
-      console.log(`Generated NIK for admin: ${finalNik}`);
+    if (data.role === "admin") {
+      // Admin users: NIK is optional
+      if (data.nik) {
+        // If NIK provided, use it
+        finalNik = data.nik;
+      } else {
+        // If no NIK provided, generate one automatically
+        finalNik = generateAdminNIK();
+        console.log(`Auto-generated NIK for admin: ${finalNik}`);
+      }
+    } else {
+      // Participant users: NIK is required
+      if (!data.nik) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "NIK is required for participant users",
+          errors: [
+            {
+              field: "nik",
+              message: "Participant users must have a NIK",
+              code: "NIK_REQUIRED",
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+      finalNik = data.nik;
     }
 
     // Validation logic based on creation type
     if (isBootstrapAdminCreation) {
-      // First admin creation - special bootstrap case
-      console.log(`Bootstrap admin creation: ${data.email}`);
+      // Admin creation without authentication (self-registration when < 3 admins)
+      console.log(`Creating admin ${currentAdminCount + 1}/3: ${data.email}`);
 
       if (!data.password) {
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Password is required for bootstrap admin creation",
+          message: "Password is required for admin users",
           errors: [
             {
               field: "password",
-              message: "First admin user must have a password",
+              message: "Admin users must have a password",
               code: "PASSWORD_REQUIRED",
             },
           ],
@@ -100,13 +152,13 @@ export async function createUserHandler(
         return c.json(errorResponse, 400);
       }
 
-      // Validate password strength for bootstrap admin
+      // Validate password strength for admin
       const passwordRegex =
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
       if (data.password.length < 8 || !passwordRegex.test(data.password)) {
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Bootstrap admin password does not meet requirements",
+          message: "Admin password does not meet requirements",
           errors: [
             {
               field: "password",
@@ -120,7 +172,7 @@ export async function createUserHandler(
         return c.json(errorResponse, 400);
       }
 
-      // Force role to admin for bootstrap
+      // Force role to admin
       data.role = "admin";
     } else if (isAdminCreation) {
       // Admin creating user - can create both admin and participant
@@ -129,6 +181,24 @@ export async function createUserHandler(
       );
 
       if (data.role === "admin") {
+        // Check admin limit even for admin creation
+        if (currentAdminCount >= 3) {
+          const errorResponse: ErrorResponse = {
+            success: false,
+            message: "Maximum number of admin users reached",
+            errors: [
+              {
+                field: "role",
+                message:
+                  "Cannot create more admin users. Maximum limit is 3 admins.",
+                code: "ADMIN_LIMIT_EXCEEDED",
+              },
+            ],
+            timestamp: new Date().toISOString(),
+          };
+          return c.json(errorResponse, 400);
+        }
+
         // Admin creating another admin - password required
         if (!data.password) {
           const errorResponse: ErrorResponse = {
@@ -182,35 +252,18 @@ export async function createUserHandler(
         };
         return c.json(errorResponse, 400);
       }
-
-      // Participants must have NIK
-      if (data.role === "participant" && !finalNik) {
-        const errorResponse: ErrorResponse = {
-          success: false,
-          message: "NIK is required for participant users",
-          errors: [
-            {
-              field: "nik",
-              message: "Participant users must have a NIK",
-              code: "NIK_REQUIRED",
-            },
-          ],
-          timestamp: new Date().toISOString(),
-        };
-        return c.json(errorResponse, 400);
-      }
     } else if (isSelfRegistration) {
-      // Self-registration - only allow participant role (unless bootstrap admin)
+      // Self-registration logic
       if (data.role === "admin" && !isBootstrapAdminCreation) {
         const errorResponse: ErrorResponse = {
           success: false,
-          message: "Cannot self-register as admin - admin already exists",
+          message:
+            "Cannot self-register as admin - maximum admin limit reached",
           errors: [
             {
               field: "role",
-              message:
-                "Self-registration as admin is only allowed when no admin exists in the system",
-              code: "ADMIN_ALREADY_EXISTS",
+              message: `Self-registration as admin is only allowed when there are fewer than 3 admins in the system. Current admin count: ${currentAdminCount}/3`,
+              code: "ADMIN_LIMIT_REACHED",
             },
           ],
           timestamp: new Date().toISOString(),
@@ -238,27 +291,10 @@ export async function createUserHandler(
         // Force role to participant for self-registration
         data.role = "participant";
         console.log(`Self-registration for participant: ${data.email}`);
-
-        // Participants must have NIK
-        if (!finalNik) {
-          const errorResponse: ErrorResponse = {
-            success: false,
-            message: "NIK is required for participant registration",
-            errors: [
-              {
-                field: "nik",
-                message: "Participant users must have a NIK",
-                code: "NIK_REQUIRED",
-              },
-            ],
-            timestamp: new Date().toISOString(),
-          };
-          return c.json(errorResponse, 400);
-        }
       }
     }
 
-    // Check if NIK or email already exists (only check NIK if provided)
+    // Check if NIK or email already exists
     const conditions = [eq(users.email, data.email)];
     if (finalNik) {
       conditions.push(eq(users.nik, finalNik));
@@ -299,7 +335,7 @@ export async function createUserHandler(
 
     // Prepare data for database insertion
     const insertData: CreateUserDB & { password?: string | null } = {
-      nik: finalNik || "", // Ensure NIK is never null for database
+      nik: finalNik || "", // Use generated or provided NIK
       name: data.name,
       role: data.role,
       email: data.email,
@@ -367,16 +403,26 @@ export async function createUserHandler(
     // Determine creation type for response message
     let creationType: string;
     if (isBootstrapAdminCreation) {
-      creationType = "Bootstrap admin creation";
+      if (currentAdminCount === 0) {
+        creationType = "Bootstrap admin creation";
+      } else {
+        creationType = `Admin creation (${currentAdminCount + 1}/3)`;
+      }
     } else if (isAdminCreation) {
-      creationType = "Admin creation";
+      creationType = `Admin creation (${currentAdminCount + 1}/3)`;
     } else {
       creationType = "Self-registration";
     }
 
+    // Determine if NIK was auto-generated
+    const nikMessage =
+      data.role === "admin" && !data.nik
+        ? ` (NIK auto-generated: ${finalNik})`
+        : "";
+
     const response: CreateUserResponse = {
       success: true,
-      message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully${finalNik !== data.nik ? ` (NIK auto-generated: ${finalNik})` : ""}`,
+      message: `${creationType}: ${data.role === "admin" ? "Admin" : "Participant"} user created successfully${nikMessage}`,
       data: responseData,
       timestamp: new Date().toISOString(),
     };

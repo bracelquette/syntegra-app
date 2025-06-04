@@ -1,8 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { type CloudflareBindings } from "../../lib/env";
+import { type CloudflareBindings } from "@/lib/env";
 import {
-  CreateUserRequestSchema,
   GetUsersRequestSchema,
   GetUserByIdRequestSchema,
   UpdateUserRequestSchema,
@@ -11,6 +10,7 @@ import {
   CSVUploadRequestSchema,
   BulkCreateUsersRequestSchema,
   type ErrorResponse,
+  z,
 } from "shared-types";
 import { createUserHandler } from "./user.create";
 import { getUsersListHandler } from "./user.list";
@@ -24,7 +24,8 @@ import {
   requireAdmin,
   requireRole,
   optionalAuth,
-} from "../../middleware/auth";
+} from "@/middleware/auth";
+import { validateCreateUser } from "@/lib/middleware/validateCreateUser";
 import {
   validateSyntegraCSVHandler,
   createUsersFromCSVHandler,
@@ -32,7 +33,7 @@ import {
 import {
   userRegistrationRateLimit,
   generalApiRateLimit,
-} from "../../middleware/rateLimiter";
+} from "@/middleware/rateLimiter";
 
 const userRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -57,21 +58,7 @@ userRoutes.post(
   "/",
   userRegistrationRateLimit, // 5 registrations per hour per IP
   optionalAuth, // Optional auth to detect if admin is creating user
-  zValidator("json", CreateUserRequestSchema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        message: "Validation failed",
-        errors: result.error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code,
-        })),
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 400);
-    }
-  }),
+  validateCreateUser, // Custom validation middleware
   createUserHandler
 );
 
