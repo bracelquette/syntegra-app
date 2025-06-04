@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +12,7 @@ export function LoginFormParticipant({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [email, setEmail] = useState("test@user.com");
-  const [password, setPassword] = useState("user123");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const router = useRouter();
+  let isLoading = false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,56 +39,37 @@ export function LoginFormParticipant({
               </div>
               <span className="sr-only">Syntegra Services</span>
             </a>
-            <h1 className="text-xl font-bold">Welcome to Syntegra Services</h1>
+            <h1 className="text-xl font-bold">
+              Selamat Datang di Syntegra Services
+            </h1>
             <div className="text-center text-sm">
               Belum memiliki akun?{" "}
-              <a href="#" className="underline underline-offset-4">
+              <Link
+                href="/participant/register"
+                className="underline underline-offset-4"
+              >
                 Daftar
-              </a>
-            </div>
-          </div>
-
-          {/* Demo credentials info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="text-xs text-blue-800">
-              <strong>Demo Credentials:</strong>
-              <br />
-              Email: test@user.com
-              <br />
-              Password: user123
+              </Link>
             </div>
           </div>
 
           <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="nik">Nomor Induk Kependudukan</Label>
+              <Input
+                id="nik"
+                type="number"
+                placeholder=""
+                required
+                disabled={isLoading}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="test@user.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <a
-                  href="#"
-                  className="ml-auto text-sm underline-offset-2 hover:underline text-muted-foreground"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Lupa kata sandi?
-                </a>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="user123"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -114,7 +88,7 @@ export function LoginFormParticipant({
           <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <Link href="/">
               <span className="relative z-10 bg-background px-2 text-muted-foreground hover:underline">
-                Home
+                Kembali ke Home
               </span>
             </Link>
           </div>
