@@ -1,3 +1,5 @@
+"use client";
+
 import { AppSidebarAdmin } from "@/components/app-sidebar-admin";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import {

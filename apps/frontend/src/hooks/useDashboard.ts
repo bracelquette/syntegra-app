@@ -2,43 +2,57 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useApi";
-import type { GetAdminDashboardResponse } from "shared-types";
 
-export interface DashboardQueryParams {
-  period?: "day" | "week" | "month" | "year";
-  include_activity?: boolean;
-  include_trends?: boolean;
-  activity_limit?: number;
-  date_from?: string;
-  date_to?: string;
+// Define the API response types based on actual response
+export interface DashboardOverview {
+  total_users: number;
+  total_participants: number;
+  total_admins: number;
+  total_tests: number;
+  active_tests: number;
+  total_sessions: number;
+  active_sessions: number;
+  total_attempts: number;
+  completed_attempts: number;
+  total_session_participants: number;
+  total_session_modules: number;
+}
+
+export interface RecentSession {
+  id: string;
+  session_name: string;
+  session_code: string;
+  status: string;
+  start_time: string;
+  end_time: string;
+  participants: string;
+}
+
+export interface PopularTest {
+  test_id: string;
+  test_name: string;
+  attempt_count: number;
+}
+
+export interface GetAdminDashboardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    overview: DashboardOverview;
+    recent_sessions: RecentSession[];
+    popular_tests: PopularTest[];
+  };
+  timestamp: string;
 }
 
 export function useDashboard() {
   const { apiCall } = useApi();
 
-  // Get admin dashboard data
-  const useGetAdminDashboard = (params?: DashboardQueryParams) => {
-    const queryParams = new URLSearchParams();
-
-    if (params?.period) queryParams.set("period", params.period);
-    if (params?.include_activity !== undefined) {
-      queryParams.set("include_activity", params.include_activity.toString());
-    }
-    if (params?.include_trends !== undefined) {
-      queryParams.set("include_trends", params.include_trends.toString());
-    }
-    if (params?.activity_limit) {
-      queryParams.set("activity_limit", params.activity_limit.toString());
-    }
-    if (params?.date_from) queryParams.set("date_from", params.date_from);
-    if (params?.date_to) queryParams.set("date_to", params.date_to);
-
+  // Get admin dashboard data (no parameters - simple API call)
+  const useGetAdminDashboard = () => {
     return useQuery({
-      queryKey: ["dashboard", "admin", params],
-      queryFn: () =>
-        apiCall<GetAdminDashboardResponse>(
-          `/dashboard/admin?${queryParams.toString()}`
-        ),
+      queryKey: ["dashboard", "admin"],
+      queryFn: () => apiCall<GetAdminDashboardResponse>("/dashboard/admin"),
       staleTime: 2 * 60 * 1000, // 2 minutes
       refetchInterval: 5 * 60 * 1000, // Auto refetch every 5 minutes
     });
