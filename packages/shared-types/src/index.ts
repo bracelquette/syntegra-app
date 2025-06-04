@@ -25,5 +25,8 @@ export * from "./session-participants";
 // Export all answer-related types and schemas
 export * from "./answer";
 
+// Export all test-result-related types and schemas
+export * from "./test-result";
+
 // Re-export zod for convenience
 export { z } from "zod";

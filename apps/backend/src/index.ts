@@ -123,6 +123,16 @@ app.get("/", (c) => {
             "GET /api/v1/attempts/:attemptId/answers/utils/answer-types",
         },
       },
+      results: {
+        getByAttempt: "GET /api/v1/results/attempt/:attemptId",
+        getUserResults: "GET /api/v1/results/user/:userId",
+        getTestResults: "GET /api/v1/results/test/:testId",
+        calculate: "POST /api/v1/results/calculate",
+        generateReport: "GET /api/v1/results/:resultId/report",
+        generateCertificate: "GET /api/v1/results/:resultId/certificate",
+        filterOptions: "GET /api/v1/results/filters/options",
+        stats: "GET /api/v1/results/stats/summary",
+      },
     },
   });
 });
