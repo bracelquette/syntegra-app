@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth as useAuthContext } from "@/contexts/AuthContext";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +16,6 @@ import {
   Clock,
   BookOpen,
   Trophy,
-  LogOut,
   Mail,
   Phone,
   MapPin,
@@ -26,15 +24,6 @@ import { toast } from "sonner";
 
 export default function ParticipantDashboardPage() {
   const { user, isLoading } = useAuthContext();
-  const { logout } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -90,17 +79,9 @@ export default function ParticipantDashboardPage() {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Dashboard Peserta</h1>
-              <p className="text-muted-foreground">
-                Selamat datang, {user.name}
-              </p>
-            </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="size-4 mr-2" />
-              Logout
-            </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard Peserta</h1>
+            <p className="text-muted-foreground">Selamat datang, {user.name}</p>
           </div>
         </div>
       </div>
