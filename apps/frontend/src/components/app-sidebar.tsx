@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BarChart3, Brain, User2 } from "lucide-react";
+import { BarChart3, Brain } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -37,11 +37,6 @@ const data = {
       title: "Psikotes",
       url: "/participant/test",
       icon: Brain,
-    },
-    {
-      title: "Profile",
-      url: "/participant/profile",
-      icon: User2,
     },
   ],
 };
