@@ -23,11 +23,6 @@ import { NavUserAdmin } from "./nav-user-admin";
 
 // Data untuk sistem psikotes
 const data = {
-  user: {
-    name: "Admin Demo",
-    email: "admin@syntegra-services.com",
-    avatar: "/images/syntegra-logo.jpg",
-  },
   company: {
     name: "Syntegra Services",
     subTitle: "Sistem Psikotes Digital",
@@ -81,7 +76,7 @@ export function AppSidebarAdmin({
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUserAdmin user={data.user} />
+        <NavUserAdmin />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
