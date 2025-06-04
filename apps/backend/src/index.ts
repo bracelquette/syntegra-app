@@ -141,6 +141,15 @@ app.get("/", (c) => {
         analytics: "GET /api/v1/dashboard/analytics/summary",
         export: "GET /api/v1/dashboard/export",
       },
+      reports: {
+        individual: "GET /api/v1/reports/individual/:userId",
+        sessionSummary: "GET /api/v1/reports/session/:sessionId",
+        comparative: "GET /api/v1/reports/comparative/:sessionId",
+        batch: "GET /api/v1/reports/batch/:sessionId",
+        config: "GET /api/v1/reports/config",
+        stats: "GET /api/v1/reports/stats/summary",
+        health: "GET /api/v1/reports/health",
+      },
       analytics: {
         tests: "GET /api/v1/analytics/tests",
         sessions: "GET /api/v1/analytics/sessions",
