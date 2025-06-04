@@ -13,7 +13,6 @@ import {
   verifyToken,
   generateAccessToken,
   generateRefreshToken,
-  generateRandomToken,
   createAuthSession,
   deleteAuthSession,
   deleteAllUserSessions,
@@ -23,7 +22,6 @@ import {
   isAccountLocked,
   toAuthUserData,
   parseIdentifier,
-  requiresPassword,
 } from "../../lib/auth";
 import {
   type AdminLoginRequest,
@@ -618,7 +616,7 @@ export async function logoutHandler(
       await deleteAllUserSessions(db, auth.user.id);
     } else {
       // Logout from current session only
-      await deleteAuthSession(db, auth.session_id);
+      await deleteAuthSession(db, auth.sessionId);
     }
 
     const response: AuthSuccessResponse = {

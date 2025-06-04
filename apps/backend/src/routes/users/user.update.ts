@@ -1,6 +1,5 @@
-// apps/backend/src/routes/users/user.update.ts
 import { Context } from "hono";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDbFromEnv, users, isDatabaseConfigured } from "../../db";
 import { getEnv, type CloudflareBindings } from "../../lib/env";
 import {
@@ -313,8 +312,8 @@ export async function updateUserHandler(
       name: updatedUser.name,
       role: updatedUser.role,
       email: updatedUser.email,
-      gender: updatedUser.gender,
-      phone: updatedUser.phone,
+      gender: updatedUser.gender || "other",
+      phone: updatedUser.phone || "",
       birth_place: updatedUser.birth_place,
       birth_date: updatedUser.birth_date,
       religion: updatedUser.religion,

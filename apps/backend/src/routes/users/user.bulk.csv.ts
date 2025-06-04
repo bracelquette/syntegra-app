@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { eq, or, inArray } from "drizzle-orm";
+import { or, inArray } from "drizzle-orm";
 import { getDbFromEnv, users, isDatabaseConfigured } from "../../db";
 import { getEnv, type CloudflareBindings } from "../../lib/env";
 import {
@@ -483,8 +483,8 @@ export async function createUsersFromCSVHandler(
         role: user.role || "participant",
         email: user.email,
         password: null, // Participants don't have passwords
-        gender: user.gender,
-        phone: user.phone,
+        gender: user.gender || "other",
+        phone: user.phone || "",
         birth_place: user.birth_place || null,
         birth_date: user.birth_date ? new Date(user.birth_date) : null,
         religion: user.religion || null,
