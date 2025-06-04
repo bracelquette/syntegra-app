@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as AdminRegisterImport } from './routes/admin/register'
 import { Route as AdminLoginImport } from './routes/admin/login'
 
 // Create/Update Routes
@@ -19,6 +20,12 @@ import { Route as AdminLoginImport } from './routes/admin/login'
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AdminRegisterRoute = AdminRegisterImport.update({
+  id: '/admin/register',
+  path: '/admin/register',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -46,6 +53,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginImport
       parentRoute: typeof rootRoute
     }
+    '/admin/register': {
+      id: '/admin/register'
+      path: '/admin/register'
+      fullPath: '/admin/register'
+      preLoaderRoute: typeof AdminRegisterImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -54,36 +68,41 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/register': typeof AdminRegisterRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/register': typeof AdminRegisterRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/register': typeof AdminRegisterRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin/login'
+  fullPaths: '/' | '/admin/login' | '/admin/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin/login'
-  id: '__root__' | '/' | '/admin/login'
+  to: '/' | '/admin/login' | '/admin/register'
+  id: '__root__' | '/' | '/admin/login' | '/admin/register'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminRegisterRoute: typeof AdminRegisterRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminRegisterRoute: AdminRegisterRoute,
 }
 
 export const routeTree = rootRoute
@@ -97,7 +116,8 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/admin/login"
+        "/admin/login",
+        "/admin/register"
       ]
     },
     "/": {
@@ -105,6 +125,9 @@ export const routeTree = rootRoute
     },
     "/admin/login": {
       "filePath": "admin/login.tsx"
+    },
+    "/admin/register": {
+      "filePath": "admin/register.tsx"
     }
   }
 }
