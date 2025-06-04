@@ -193,10 +193,84 @@ export const GetUsersRequestSchema = z.object({
     .transform((val) => val === "true")
     .pipe(z.boolean())
     .optional(),
+  gender: GenderEnum.optional(),
+  religion: ReligionEnum.optional(),
+  education: EducationEnum.optional(),
+  province: z.string().optional(),
+  regency: z.string().optional(),
+  created_from: z.string().optional(),
+  created_to: z.string().optional(),
 });
 
 export const GetUserByIdRequestSchema = z.object({
   userId: z.string().uuid("Invalid user ID format"),
+});
+
+// ==================== RESPONSE SCHEMAS ====================
+
+// UserData schema - simplified user data for responses
+export const UserDataSchema = z.object({
+  id: z.string().uuid(),
+  nik: z.string(),
+  name: z.string(),
+  role: RoleEnum,
+  email: z.string().email(),
+  gender: GenderEnum,
+  phone: z.string(),
+  birth_place: z.string().nullable(),
+  birth_date: z.date().nullable(),
+  religion: ReligionEnum.nullable(),
+  education: EducationEnum.nullable(),
+  address: z.string().nullable(),
+  province: z.string().nullable(),
+  regency: z.string().nullable(),
+  district: z.string().nullable(),
+  village: z.string().nullable(),
+  postal_code: z.string().nullable(),
+  profile_picture_url: z.string().nullable(),
+  is_active: z.boolean(),
+  email_verified: z.boolean(),
+  created_at: z.date(),
+  updated_at: z.date(),
+  created_by: z.string().uuid().nullable(),
+  updated_by: z.string().uuid().nullable(),
+});
+
+// Get User By ID Response Schema
+export const GetUserByIdResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: UserDataSchema,
+  timestamp: z.string(),
+});
+
+// Get Users List Response Schema
+export const GetUsersResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.array(UserDataSchema),
+  meta: z.object({
+    current_page: z.number(),
+    per_page: z.number(),
+    total: z.number(),
+    total_pages: z.number(),
+    has_next_page: z.boolean(),
+    has_prev_page: z.boolean(),
+  }),
+  timestamp: z.string(),
+});
+
+// Delete User Response Schema
+export const DeleteUserResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    email: z.string().email(),
+    deleted_at: z.string(),
+  }),
+  timestamp: z.string(),
 });
 
 export const UpdateUserRequestSchema = z.object({
@@ -294,3 +368,9 @@ export type UpdateUserDB = z.infer<typeof UpdateUserDBSchema>;
 export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>;
 export type UpdateUserByIdRequest = z.infer<typeof UpdateUserByIdRequestSchema>;
 export type DeleteUserByIdRequest = z.infer<typeof DeleteUserByIdRequestSchema>;
+
+// Additional response types
+export type UserData = z.infer<typeof UserDataSchema>;
+export type GetUserByIdResponse = z.infer<typeof GetUserByIdResponseSchema>;
+export type GetUsersResponse = z.infer<typeof GetUsersResponseSchema>;
+export type DeleteUserResponse = z.infer<typeof DeleteUserResponseSchema>;
