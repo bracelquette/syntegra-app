@@ -29,12 +29,16 @@ export const SubmitAnswerRequestSchema = z.object({
 
 // Auto-save Answer Request Schema
 export const AutoSaveAnswerRequestSchema = z.object({
-  attempt_id: z.string().uuid("Invalid attempt ID format"),
   question_id: z.string().uuid("Invalid question ID format"),
   answer: z.string().optional(),
   answer_data: z.record(z.any()).optional(),
   time_taken: z.number().min(0).optional(),
   confidence_level: z.number().min(1).max(5).optional(),
+});
+
+// Auto-save Answer By Attempt Request Schema (Path Parameters)
+export const AutoSaveAnswerByAttemptRequestSchema = z.object({
+  attemptId: z.string().uuid("Invalid attempt ID format"),
 });
 
 // Get Attempt Answers Query Schema
@@ -265,6 +269,9 @@ export type SubmitAnswerByAttemptRequest = z.infer<
 export type SubmitAnswerResponse = z.infer<typeof SubmitAnswerResponseSchema>;
 
 export type AutoSaveAnswerRequest = z.infer<typeof AutoSaveAnswerRequestSchema>;
+export type AutoSaveAnswerByAttemptRequest = z.infer<
+  typeof AutoSaveAnswerByAttemptRequestSchema
+>;
 export type AutoSaveAnswerResponse = z.infer<
   typeof AutoSaveAnswerResponseSchema
 >;

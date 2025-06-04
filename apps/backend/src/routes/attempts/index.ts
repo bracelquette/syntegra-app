@@ -28,8 +28,13 @@ import {
   requireAdmin,
 } from "@/middleware/auth";
 import { generalApiRateLimit } from "@/middleware/rateLimiter";
+import { answerRoutes } from "./answers";
 
 const attemptRoutes = new Hono<{ Bindings: CloudflareBindings }>();
+
+// ==================== ANSWERS ROUTES ====================
+// Mount answers routes under /:attemptId/answers
+attemptRoutes.route("/:attemptId/answers", answerRoutes);
 
 // ==================== NEW ENDPOINTS ====================
 

@@ -103,28 +103,25 @@ app.get("/", (c) => {
         },
       },
       attempts: {
-        // Participant
         start: "POST /api/v1/attempts/start",
         get: "GET /api/v1/attempts/:attemptId",
         update: "PUT /api/v1/attempts/:attemptId",
         finish: "POST /api/v1/attempts/:attemptId/finish",
         progress: "GET /api/v1/attempts/:attemptId/progress",
-        // Admin
         getUserAttempts: "GET /api/v1/attempts/user/:userId",
         getSessionAttempts: "GET /api/v1/attempts/session/:sessionId",
         statusOptions: "GET /api/v1/attempts/utils/status-options",
         stats: "GET /api/v1/attempts/stats/summary",
-      },
-      answers: {
-        // Participant
-        submit: "POST /api/v1/answers/attempts/:attemptId/answers",
-        getAttemptAnswers: "GET /api/v1/answers/attempts/:attemptId/answers",
-        getSpecificAnswer:
-          "GET /api/v1/answers/attempts/:attemptId/answers/:questionId",
-        autoSave: "POST /api/v1/answers/auto-save",
-        // Admin
-        stats: "GET /api/v1/answers/attempts/:attemptId/stats",
-        answerTypes: "GET /api/v1/answers/utils/answer-types",
+        answers: {
+          submit: "POST /api/v1/attempts/:attemptId/answers",
+          getAttemptAnswers: "GET /api/v1/attempts/:attemptId/answers",
+          getSpecificAnswer:
+            "GET /api/v1/attempts/:attemptId/answers/:questionId",
+          autoSave: "POST /api/v1/attempts/:attemptId/answers/auto-save",
+          stats: "GET /api/v1/attempts/:attemptId/answers/stats",
+          answerTypes:
+            "GET /api/v1/attempts/:attemptId/answers/utils/answer-types",
+        },
       },
     },
   });

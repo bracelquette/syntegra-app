@@ -8,7 +8,6 @@ import {
   avg,
   sum,
   or,
-  ne,
   isNull,
   isNotNull,
   sql,

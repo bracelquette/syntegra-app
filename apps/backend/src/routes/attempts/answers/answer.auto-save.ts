@@ -22,6 +22,7 @@ export async function autoSaveAnswerHandler(
   try {
     const db = getDbFromEnv(c.env);
     const user = c.var.user; // From auth middleware
+    const { attemptId } = c.req.param();
     const requestData: AutoSaveAnswerRequest = await c.req.json();
 
     // Validate that user is a participant
@@ -51,7 +52,7 @@ export async function autoSaveAnswerHandler(
       .leftJoin(tests, eq(testAttempts.test_id, tests.id))
       .where(
         and(
-          eq(testAttempts.id, requestData.attempt_id),
+          eq(testAttempts.id, attemptId),
           eq(testAttempts.user_id, user.id) // Ensure user can only auto-save to their own attempts
         )
       )
@@ -175,7 +176,7 @@ export async function autoSaveAnswerHandler(
         and(
           eq(userAnswers.user_id, user.id),
           eq(userAnswers.question_id, requestData.question_id),
-          eq(userAnswers.attempt_id, requestData.attempt_id)
+          eq(userAnswers.attempt_id, attemptId)
         )
       )
       .limit(1);
@@ -205,7 +206,7 @@ export async function autoSaveAnswerHandler(
       const insertData = {
         user_id: user.id,
         question_id: requestData.question_id,
-        attempt_id: requestData.attempt_id,
+        attempt_id: attemptId,
         answer: requestData.answer || null,
         answer_data: requestData.answer_data || null,
         score: null, // Auto-save doesn't calculate score

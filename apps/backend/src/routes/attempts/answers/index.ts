@@ -5,6 +5,7 @@ import {
   SubmitAnswerRequestSchema,
   SubmitAnswerByAttemptRequestSchema,
   AutoSaveAnswerRequestSchema,
+  AutoSaveAnswerByAttemptRequestSchema,
   GetAttemptAnswersRequestSchema,
   GetAttemptAnswersQuerySchema,
   GetSpecificAnswerRequestSchema,
@@ -27,6 +28,21 @@ answerRoutes.post(
   generalApiRateLimit,
   authenticateUser,
   requireParticipant,
+  zValidator("param", AutoSaveAnswerByAttemptRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: AnswerErrorResponse = {
+        success: false,
+        message: "Invalid attempt ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
   zValidator("json", AutoSaveAnswerRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: AnswerErrorResponse = {
@@ -49,7 +65,7 @@ answerRoutes.post(
 
 // Submit Answer to Attempt (Participant only)
 answerRoutes.post(
-  "/attempts/:attemptId/answers",
+  "/",
   generalApiRateLimit,
   authenticateUser,
   requireParticipant,
@@ -88,7 +104,7 @@ answerRoutes.post(
 
 // Get Attempt Answers (Participant can access own, Admin can access all)
 answerRoutes.get(
-  "/attempts/:attemptId/answers",
+  "/",
   generalApiRateLimit,
   authenticateUser,
   zValidator("param", GetAttemptAnswersRequestSchema, (result, c) => {
@@ -126,7 +142,7 @@ answerRoutes.get(
 
 // Get Specific Answer (Participant can access own, Admin can access all)
 answerRoutes.get(
-  "/attempts/:attemptId/answers/:questionId",
+  "/:questionId",
   generalApiRateLimit,
   authenticateUser,
   zValidator("param", GetSpecificAnswerRequestSchema, (result, c) => {
@@ -195,7 +211,7 @@ answerRoutes.get(
 
 // Get Answer Statistics for Attempt (Admin only)
 answerRoutes.get(
-  "/attempts/:attemptId/stats",
+  "/stats",
   generalApiRateLimit,
   authenticateUser,
   zValidator("param", GetAttemptAnswersRequestSchema, (result, c) => {
