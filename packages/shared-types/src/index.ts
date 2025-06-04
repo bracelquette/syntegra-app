@@ -28,5 +28,8 @@ export * from "./answer";
 // Export all test-result-related types and schemas
 export * from "./test-result";
 
+// Export all dashboard-related types and schemas
+export * from "./dashboard";
+
 // Re-export zod for convenience
 export { z } from "zod";

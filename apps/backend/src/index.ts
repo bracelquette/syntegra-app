@@ -133,6 +133,14 @@ app.get("/", (c) => {
         filterOptions: "GET /api/v1/results/filters/options",
         stats: "GET /api/v1/results/stats/summary",
       },
+      dashboard: {
+        admin: "GET /api/v1/dashboard/admin",
+        participant: "GET /api/v1/dashboard/participant",
+        config: "GET /api/v1/dashboard/config",
+        health: "GET /api/v1/dashboard/health",
+        analytics: "GET /api/v1/dashboard/analytics/summary",
+        export: "GET /api/v1/dashboard/export",
+      },
     },
   });
 });
