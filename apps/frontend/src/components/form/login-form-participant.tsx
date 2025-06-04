@@ -12,8 +12,9 @@ import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
-// Form validation schema
+// Form validation schema - updated to match backend expectations
 const loginSchema = z.object({
   nik: z
     .string()
@@ -33,11 +34,14 @@ export function LoginFormParticipant({
   ...props
 }: React.ComponentProps<"div">) {
   const [showNIK, setShowNIK] = useState(false);
+  const { useParticipantLogin } = useAuth();
+
+  const participantLoginMutation = useParticipantLogin();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setError,
     clearErrors,
   } = useForm<LoginFormData>({
@@ -49,41 +53,92 @@ export function LoginFormParticipant({
     try {
       clearErrors();
 
-      toast.success("Login berhasil!", {
-        description: `Selamat datang ${data.email}`,
-      });
+      // Create participant login request
+      // The backend expects 'identifier' which can be NIK or email
+      // We'll try NIK first, then email if NIK fails
+      const loginRequest = {
+        nik: data.nik, // Try NIK first
+        email: data.email,
+      };
+
+      await participantLoginMutation.mutateAsync(loginRequest);
     } catch (error: any) {
       console.error("Login error:", error);
 
-      // Handle specific error cases
-      if (error.message.includes("NIK atau email")) {
-        setError("nik", {
-          type: "manual",
-          message: "NIK atau email tidak ditemukan",
-        });
-        setError("email", {
-          type: "manual",
-          message: "NIK atau email tidak ditemukan",
-        });
-      } else if (error.message.includes("NIK")) {
-        setError("nik", {
-          type: "manual",
-          message: error.message,
-        });
-      } else if (error.message.includes("email")) {
-        setError("email", {
-          type: "manual",
-          message: error.message,
-        });
+      // Handle specific error cases based on the error message
+      if (error.message) {
+        const errorMsg = error.message.toLowerCase();
+
+        if (
+          errorMsg.includes("user not found") ||
+          errorMsg.includes("tidak ditemukan")
+        ) {
+          // Try with email as identifier if NIK failed
+          try {
+            const emailLoginRequest = {
+              nik: data.nik,
+              email: data.email,
+            };
+            await participantLoginMutation.mutateAsync(emailLoginRequest);
+            return; // Success with email
+          } catch (emailError: any) {
+            // Both NIK and email failed
+            setError("nik", {
+              type: "manual",
+              message: "NIK atau email tidak terdaftar",
+            });
+            setError("email", {
+              type: "manual",
+              message: "NIK atau email tidak terdaftar",
+            });
+
+            toast.error("Login gagal", {
+              description: "NIK atau email tidak ditemukan dalam sistem",
+            });
+          }
+        } else if (
+          errorMsg.includes("account") &&
+          errorMsg.includes("locked")
+        ) {
+          toast.error("Akun Terkunci", {
+            description:
+              "Akun Anda sementara dikunci. Hubungi admin untuk bantuan.",
+          });
+        } else if (
+          errorMsg.includes("inactive") ||
+          errorMsg.includes("deactivated")
+        ) {
+          toast.error("Akun Nonaktif", {
+            description: "Akun Anda tidak aktif. Hubungi admin untuk aktivasi.",
+          });
+        } else if (errorMsg.includes("nik")) {
+          setError("nik", {
+            type: "manual",
+            message: error.message,
+          });
+        } else if (errorMsg.includes("email")) {
+          setError("email", {
+            type: "manual",
+            message: error.message,
+          });
+        } else {
+          // Generic error handling is done in the mutation's onError
+          // Just set form-level error for display
+          setError("root", {
+            type: "manual",
+            message: error.message || "Terjadi kesalahan saat login",
+          });
+        }
       } else {
-        toast.error("Login gagal", {
-          description: error.message || "Terjadi kesalahan saat login",
+        setError("root", {
+          type: "manual",
+          message: "Terjadi kesalahan saat login",
         });
       }
     }
   };
 
-  const isLoading = isSubmitting;
+  const isLoading = participantLoginMutation.isPending;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -154,8 +209,9 @@ export function LoginFormParticipant({
                 <button
                   type="button"
                   onClick={() => setShowNIK(!showNIK)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   disabled={isLoading}
+                  tabIndex={-1}
                 >
                   {showNIK ? (
                     <EyeOff className="size-4" />
@@ -170,6 +226,9 @@ export function LoginFormParticipant({
                   {errors.nik.message}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                NIK Anda akan digunakan sebagai identitas login
+              </p>
             </div>
 
             {/* Email Field */}
@@ -193,19 +252,46 @@ export function LoginFormParticipant({
                   {errors.email.message}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Email yang terdaftar dalam sistem
+              </p>
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+              size="lg"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Memproses...
+                  Memproses Login...
                 </>
               ) : (
-                "Masuk"
+                "Masuk ke Sistem"
               )}
             </Button>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 mt-0.5">
+                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1"></div>
+              </div>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Informasi Login:</p>
+                <ul className="text-xs space-y-1 text-blue-700">
+                  <li>• Gunakan NIK 16 digit yang terdaftar</li>
+                  <li>• Pastikan email sesuai dengan data registrasi</li>
+                  <li>
+                    • Sistem akan mencoba login dengan NIK terlebih dahulu
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           {/* Divider */}
@@ -226,12 +312,13 @@ export function LoginFormParticipant({
                 onClick={() => {
                   toast.info("Bantuan Login", {
                     description:
-                      "Hubungi admin untuk bantuan atau pastikan NIK dan email sudah terdaftar",
+                      "Hubungi admin untuk bantuan atau pastikan NIK dan email sudah terdaftar dalam sistem",
+                    duration: 5000,
                   });
                 }}
-                className="text-primary underline underline-offset-4 hover:text-primary/80"
+                className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
               >
-                Klik di sini
+                Klik di sini untuk bantuan
               </button>
             </p>
           </div>

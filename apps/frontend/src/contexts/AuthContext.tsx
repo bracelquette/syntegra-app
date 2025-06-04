@@ -8,188 +8,115 @@ import React, {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
-import type {
-  LoginResponse,
-  RefreshTokenResponse,
-  ProfileResponse,
-  AdminLoginRequest,
-  ParticipantLoginRequest,
-} from "shared-types";
-
-// API Base URL
-const API_BASE_URL = "https://backend.bracelquette.workers.dev/api/v1";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "participant";
-  nik?: string;
-  is_active: boolean;
-  email_verified: boolean;
-}
+import type { AuthUserData, RefreshTokenResponse } from "shared-types";
 
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
+  user: AuthUserData | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (
-    credentials: AdminLoginRequest | ParticipantLoginRequest,
-    type: "admin" | "participant"
-  ) => Promise<void>;
+    userData: AuthUserData,
+    accessToken: string,
+    refreshToken: string
+  ) => void;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<boolean>;
-  checkAuth: () => Promise<boolean>;
+  updateUser: (userData: Partial<AuthUserData>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_BASE_URL = "https://backend.bracelquette.workers.dev/api/v1";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const isAuthenticated = !!user;
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
 
-  // Token management
-  const getAccessToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
-  const getRefreshToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("refresh_token");
-    }
-    return null;
-  };
-
-  const setTokens = (accessToken: string, refreshToken: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("refresh_token", refreshToken);
-    }
-  };
-
-  const clearTokens = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-    }
-  };
-
-  // API calls
-  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const accessToken = getAccessToken();
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-    };
-
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    if (response.status === 401) {
-      // Token expired, try refresh
-      const refreshed = await refreshAuth();
-      if (refreshed) {
-        // Retry with new token
-        const newAccessToken = getAccessToken();
-        if (newAccessToken) {
-          headers.Authorization = `Bearer ${newAccessToken}`;
-          return fetch(url, { ...options, headers });
-        }
-      }
-      // Refresh failed, logout user
-      await logout();
-      throw new Error("Authentication failed");
-    }
-
-    return response;
-  };
-
-  // Authentication functions
-  const login = async (
-    credentials: AdminLoginRequest | ParticipantLoginRequest,
-    type: "admin" | "participant"
-  ) => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      const endpoint =
-        type === "admin" ? "/auth/admin/login" : "/auth/participant/login";
+      const accessToken = localStorage.getItem("access_token");
+      const userStr = localStorage.getItem("user");
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
+      if (!accessToken || !userStr) {
+        setUser(null);
+        return;
+      }
+
+      const userData = JSON.parse(userStr);
+
+      // Verify token by calling /auth/me endpoint
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(credentials),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
-      }
-
-      const data: LoginResponse = await response.json();
-
-      if (data.success && data.data) {
-        setTokens(
-          data.data.tokens.access_token,
-          data.data.tokens.refresh_token
-        );
-        setUser(data.data.user as User);
-
-        // Redirect based on role
-        if (data.data.user.role === "admin") {
-          router.push("/admin/dashboard");
-        } else {
-          router.push("/participant/dashboard");
+      if (response.ok) {
+        const result = await response.json();
+        setUser(result.data);
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        const refreshed = await refreshAuth();
+        if (!refreshed) {
+          // Refresh failed, clear auth state
+          clearAuthState();
         }
+      } else {
+        // Other error, clear auth state
+        clearAuthState();
       }
     } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      console.error("Auth check error:", error);
+      clearAuthState();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const login = useCallback(
+    (userData: AuthUserData, accessToken: string, refreshToken: string) => {
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
     try {
-      const refreshToken = getRefreshToken();
-
-      if (refreshToken) {
-        // Call logout endpoint
-        await apiCall("/auth/logout", {
+      // Call logout API if token exists
+      const accessToken = localStorage.getItem("access_token");
+      if (accessToken) {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
           method: "POST",
-          body: JSON.stringify({ refreshToken }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({}),
         });
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Logout API error:", error);
+      // Continue with local logout even if API fails
     } finally {
-      clearTokens();
-      setUser(null);
+      clearAuthState();
       router.push("/");
     }
-  };
+  }, [router]);
 
-  const refreshAuth = async (): Promise<boolean> => {
+  const refreshAuth = useCallback(async (): Promise<boolean> => {
     try {
-      const refreshToken = getRefreshToken();
-
+      const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
         return false;
       }
@@ -199,97 +126,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
 
-      if (!response.ok) {
-        return false;
-      }
+      if (response.ok) {
+        const result: RefreshTokenResponse = await response.json();
 
-      const data: RefreshTokenResponse = await response.json();
+        // Update access token
+        localStorage.setItem("access_token", result.data.access_token);
 
-      if (data.success && data.data) {
-        setTokens(data.data.access_token, data.data.refresh_token);
-        return true;
-      }
+        // Get updated user data
+        const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${result.data.access_token}`,
+          },
+        });
 
-      return false;
-    } catch (error) {
-      console.error("Token refresh error:", error);
-      return false;
-    }
-  };
-
-  const checkAuth = async (): Promise<boolean> => {
-    try {
-      const accessToken = getAccessToken();
-
-      if (!accessToken) {
-        return false;
-      }
-
-      const response = await apiCall("/auth/me");
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const data: ProfileResponse = await response.json();
-
-      if (data.success && data.data) {
-        setUser(data.data as User);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Auth check error:", error);
-      return false;
-    }
-  };
-
-  // Initialize auth on app start
-  useEffect(() => {
-    const initAuth = async () => {
-      setIsLoading(true);
-
-      const hasTokens = getAccessToken() && getRefreshToken();
-
-      if (hasTokens) {
-        const isValid = await checkAuth();
-        if (!isValid) {
-          clearTokens();
+        if (userResponse.ok) {
+          const userResult = await userResponse.json();
+          const userData = userResult.data;
+          localStorage.setItem("user", JSON.stringify(userData));
+          setUser(userData);
+          return true;
         }
       }
 
-      setIsLoading(false);
-    };
-
-    initAuth();
+      return false;
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      return false;
+    }
   }, []);
 
-  // Auto refresh token before expiration
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  const updateUser = useCallback((userData: Partial<AuthUserData>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
 
-    const interval = setInterval(
-      async () => {
-        await refreshAuth();
-      },
-      14 * 60 * 1000
-    ); // Refresh every 14 minutes (tokens expire in 15 minutes)
+      const updatedUser = { ...prevUser, ...userData };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  const clearAuthState = useCallback(() => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    setUser(null);
+  }, []);
 
   const value: AuthContextType = {
     user,
+    isAuthenticated: !!user,
     isLoading,
-    isAuthenticated,
     login,
     logout,
     refreshAuth,
-    checkAuth,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
