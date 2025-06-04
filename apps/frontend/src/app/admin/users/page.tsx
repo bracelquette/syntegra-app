@@ -149,7 +149,7 @@ export default function UsersManagementPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             Manajemen Peserta
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm mt-1">
             Kelola data peserta psikotes: pantau status tes, dan atur jadwal
             evaluasi dengan sistem yang terintegrasi dan efisien.
           </p>
