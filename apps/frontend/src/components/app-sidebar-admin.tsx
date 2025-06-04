@@ -37,7 +37,7 @@ const data = {
     },
     {
       title: "Manajemen Peserta",
-      url: "/admin/participants",
+      url: "/admin/users",
       icon: Users,
     },
     {
