@@ -15,7 +15,6 @@ export async function getTestAnalyticsHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user;
     const rawQuery = c.req.query();
 
     // Parse query parameters

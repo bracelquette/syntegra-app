@@ -19,25 +19,9 @@ export async function startTestAttemptHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const user = auth.user;
     const requestData: StartTestAttemptRequest = await c.req.json();
-
-    // Validate that user is a participant
-    if (user.role !== "participant") {
-      const errorResponse: AttemptErrorResponse = {
-        success: false,
-        message: "Only participants can start test attempts",
-        errors: [
-          {
-            field: "user_role",
-            message: "User must be a participant to start test attempts",
-            code: "FORBIDDEN",
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 403);
-    }
 
     // Get test details
     const test = await db

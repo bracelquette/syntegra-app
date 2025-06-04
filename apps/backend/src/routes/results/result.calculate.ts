@@ -23,7 +23,8 @@ export async function calculateTestResultHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const currentUser = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const currentUser = auth.user;
     const requestData: CalculateTestResultRequest = await c.req.json();
 
     // Validate that current user is an admin

@@ -19,7 +19,8 @@ export async function getResultByAttemptIdHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const currentUser = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const currentUser = auth.user;
     const { attemptId } = c.req.param();
 
     // Get attempt details first to check authorization

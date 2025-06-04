@@ -22,26 +22,10 @@ export async function finishTestAttemptHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const user = auth.user;
     const { attemptId } = c.req.param();
     const requestData: FinishTestAttemptRequest = await c.req.json();
-
-    // Validate that user is a participant
-    if (user.role !== "participant") {
-      const errorResponse: AttemptErrorResponse = {
-        success: false,
-        message: "Only participants can finish test attempts",
-        errors: [
-          {
-            field: "user_role",
-            message: "User must be a participant to finish test attempts",
-            code: "FORBIDDEN",
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 403);
-    }
 
     // Get current attempt with related test and session data
     const attemptResult = await db

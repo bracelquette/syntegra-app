@@ -21,26 +21,10 @@ export async function autoSaveAnswerHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const user = auth.user;
     const { attemptId } = c.req.param();
     const requestData: AutoSaveAnswerRequest = await c.req.json();
-
-    // Validate that user is a participant
-    if (user.role !== "participant") {
-      const errorResponse: AnswerErrorResponse = {
-        success: false,
-        message: "Only participants can auto-save answers",
-        errors: [
-          {
-            field: "user_role",
-            message: "User must be a participant to auto-save answers",
-            code: "FORBIDDEN",
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-      return c.json(errorResponse, 403);
-    }
 
     // Get attempt with related test data
     const attemptResult = await db

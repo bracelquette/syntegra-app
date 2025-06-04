@@ -88,7 +88,8 @@ dashboardRoutes.get(
         DASHBOARD_LIMITS,
       } = await import("shared-types");
 
-      const user = c.var.user;
+      const auth = c.get("auth");
+      const user = auth.user;
       const isAdmin = user.role === "admin";
 
       const config = {

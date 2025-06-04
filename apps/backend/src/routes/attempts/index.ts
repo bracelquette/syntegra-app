@@ -170,6 +170,7 @@ attemptRoutes.get(
   "/:attemptId",
   generalApiRateLimit,
   authenticateUser,
+  requireParticipant,
   zValidator("param", GetAttemptByIdRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: AttemptErrorResponse = {
@@ -193,6 +194,7 @@ attemptRoutes.put(
   "/:attemptId",
   generalApiRateLimit,
   authenticateUser,
+  requireParticipant,
   zValidator("param", UpdateAttemptByIdRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: AttemptErrorResponse = {
@@ -231,6 +233,7 @@ attemptRoutes.post(
   "/:attemptId/finish",
   generalApiRateLimit,
   authenticateUser,
+  requireParticipant,
   zValidator("param", FinishAttemptByIdRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: AttemptErrorResponse = {

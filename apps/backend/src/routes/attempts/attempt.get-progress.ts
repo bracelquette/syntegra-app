@@ -19,7 +19,8 @@ export async function getAttemptProgressHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const user = auth.user;
     const { attemptId } = c.req.param();
 
     // Get attempt with related test and session data

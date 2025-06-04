@@ -29,7 +29,8 @@ export async function getBatchReportHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const currentUser = c.var.user;
+    const auth = c.get("auth");
+    const currentUser = auth.user;
     const { sessionId } = c.req.param();
     const rawQuery = c.req.query();
 

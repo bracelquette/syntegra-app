@@ -28,7 +28,8 @@ export async function getIndividualReportHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const currentUser = c.var.user;
+    const auth = c.get("auth");
+    const currentUser = auth.user;
     const { userId } = c.req.param();
     const rawQuery = c.req.query();
 

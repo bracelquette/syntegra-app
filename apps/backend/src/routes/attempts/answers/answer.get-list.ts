@@ -32,7 +32,8 @@ export async function getAttemptAnswersHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const user = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const user = auth.user;
     const { attemptId } = c.req.param();
     const rawQuery = c.req.query();
 

@@ -17,7 +17,8 @@ export async function getSessionAttemptsHandler(
 ): Promise<Response> {
   try {
     const db = getDbFromEnv(c.env);
-    const currentUser = c.var.user; // From auth middleware
+    const auth = c.get("auth");
+    const currentUser = auth.user;
     const { sessionId } = c.req.param();
     const rawQuery = c.req.query();
 
