@@ -425,9 +425,9 @@ export async function requireParticipant(
   c: Context<{ Bindings: CloudflareBindings; Variables: { user: any } }>,
   next: Next
 ) {
-  const user = c.var.user;
+  const auth = c.get("auth");
 
-  if (!user) {
+  if (!auth.user) {
     return c.json(
       {
         success: false,
@@ -445,7 +445,7 @@ export async function requireParticipant(
     );
   }
 
-  if (user.role !== "participant") {
+  if (auth.user.role !== "participant") {
     return c.json(
       {
         success: false,
