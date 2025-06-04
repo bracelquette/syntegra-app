@@ -141,6 +141,16 @@ app.get("/", (c) => {
         analytics: "GET /api/v1/dashboard/analytics/summary",
         export: "GET /api/v1/dashboard/export",
       },
+      analytics: {
+        tests: "GET /api/v1/analytics/tests",
+        sessions: "GET /api/v1/analytics/sessions",
+        users: "GET /api/v1/analytics/users",
+        performance: "GET /api/v1/analytics/performance",
+        completionRates: "GET /api/v1/analytics/completion-rates",
+        traits: "GET /api/v1/analytics/traits",
+        config: "GET /api/v1/analytics/config",
+        health: "GET /api/v1/analytics/health",
+      },
     },
   });
 });
