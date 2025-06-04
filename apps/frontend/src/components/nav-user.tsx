@@ -27,7 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function NavUser({
   user,

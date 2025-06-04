@@ -29,18 +29,18 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/candidate/dashboard",
+      url: "/participant/dashboard",
       icon: BarChart3,
       isActive: true,
     },
     {
       title: "Psikotes",
-      url: "/candidate/test",
+      url: "/participant/test",
       icon: Brain,
     },
     {
       title: "Profile",
-      url: "/candidate/profile",
+      url: "/participant/profile",
       icon: User2,
     },
   ],

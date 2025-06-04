@@ -36,44 +36,34 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/admin/dashboard",
       icon: BarChart3,
       isActive: true,
     },
     {
       title: "Manajemen Peserta",
-      url: "/participants",
+      url: "/admin/participants",
       icon: Users,
     },
     {
       title: "Laporan & Hasil",
-      url: "/reports",
+      url: "/admin/reports",
       icon: FileText,
     },
     {
       title: "Modul Psikotes",
-      url: "/modules",
+      url: "/admin/tests",
       icon: Brain,
-      items: [
-        {
-          title: "Semua Modul",
-          url: "/modules",
-        },
-        {
-          title: "Template Modul",
-          url: "/templates",
-        },
-      ],
     },
     {
       title: "Jadwal & Sesi",
-      url: "/schedule",
+      url: "/admin/sessions",
       icon: Clock,
     },
 
     {
       title: "Pengaturan Sistem",
-      url: "/settings",
+      url: "/admin/settings",
       icon: Settings,
     },
   ],
