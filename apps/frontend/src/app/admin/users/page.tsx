@@ -63,8 +63,12 @@ import {
 import { useUsers } from "@/hooks/useUsers";
 import type { UserData, GetUsersRequest } from "shared-types";
 import { Label } from "@/components/ui/label";
+import { useModalStore } from "@/stores/useModalStore";
+import { CreateUserDialog } from "@/components/modals/CreateUserDialog";
 
 export default function UsersManagementPage() {
+  const { openCreateUserModal } = useModalStore();
+
   // Filter states
   const [filters, setFilters] = useState<GetUsersRequest>({
     page: 1,
@@ -142,7 +146,7 @@ export default function UsersManagementPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="py-6 space-y-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -159,7 +163,7 @@ export default function UsersManagementPage() {
             <Download className="h-4 w-4" />
             Import Data Peserta
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={openCreateUserModal}>
             <Plus className="h-4 w-4" />
             Tambah Peserta
           </Button>
@@ -555,6 +559,9 @@ export default function UsersManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <CreateUserDialog />
     </div>
   );
 }
