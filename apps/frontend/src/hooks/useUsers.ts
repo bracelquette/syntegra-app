@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 import type {
-  GetUsersResponse,
+  UserResponse,
   CreateUserRequest,
   CreateUserResponse,
   UpdateUserRequest,
@@ -29,8 +29,7 @@ export function useUsers() {
 
     return useQuery({
       queryKey: ["users", params],
-      queryFn: () =>
-        apiCall<GetUsersResponse>(`/users?${queryParams.toString()}`),
+      queryFn: () => apiCall<UserResponse>(`/users?${queryParams.toString()}`),
       staleTime: 5 * 60 * 1000, // 5 minutes
     });
   };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +12,6 @@ import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuthHook } from "@/hooks/useAuth";
 
 // Form validation schema
 const loginSchema = z.object({
@@ -35,8 +33,6 @@ export function LoginFormParticipant({
   ...props
 }: React.ComponentProps<"div">) {
   const [showNIK, setShowNIK] = useState(false);
-  const router = useRouter();
-  const { useParticipantLogin } = useAuthHook();
 
   const {
     register,
@@ -49,25 +45,13 @@ export function LoginFormParticipant({
     mode: "onChange",
   });
 
-  const loginMutation = useParticipantLogin();
-
   const onSubmit = async (data: LoginFormData) => {
     try {
       clearErrors();
 
-      const response = await loginMutation.mutateAsync({
-        nik: data.nik, // Use NIK as identifier
-        email: data.email,
+      toast.success("Login berhasil!", {
+        description: `Selamat datang ${data.email}`,
       });
-
-      if (response.success) {
-        toast.success("Login berhasil!", {
-          description: `Selamat datang, ${response.data?.user.name}`,
-        });
-
-        // Redirect to participant dashboard
-        router.push("/participant/dashboard");
-      }
     } catch (error: any) {
       console.error("Login error:", error);
 
@@ -99,7 +83,7 @@ export function LoginFormParticipant({
     }
   };
 
-  const isLoading = isSubmitting || loginMutation.isPending;
+  const isLoading = isSubmitting;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -140,11 +124,11 @@ export function LoginFormParticipant({
           </div>
 
           {/* Global Error Display */}
-          {loginMutation.isError && (
+          {errors.root && (
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
               <AlertCircle className="size-4 flex-shrink-0" />
               <span>
-                {loginMutation.error?.message || "Terjadi kesalahan saat login"}
+                {errors.root.message || "Terjadi kesalahan saat login"}
               </span>
             </div>
           )}

@@ -222,10 +222,53 @@ export const UpdateUserRequestSchema = z.object({
   village: z.string().max(100, "Village name too long").optional(),
   postal_code: z.string().max(10, "Postal code too long").optional(),
   profile_picture_url: z.string().url("Invalid URL format").optional(),
+  is_active: z.boolean().optional(), // Admin-only field
 });
 
 export const UpdateUserByIdRequestSchema = z.object({
   userId: z.string().uuid("Invalid user ID format"),
+});
+
+// Schema untuk database update
+export const UpdateUserDBSchema = z.object({
+  nik: z.string().min(1, "NIK cannot be empty").optional(),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(255, "Name too long")
+    .optional(),
+  role: RoleEnum.optional(),
+  email: z.string().email("Invalid email format").optional(),
+  password: z.string().nullable().optional(),
+
+  // Profile fields
+  gender: GenderEnum.optional(),
+  phone: z.string().optional(),
+  birth_place: z.string().nullable().optional(),
+  birth_date: z.date().nullable().optional(),
+  religion: ReligionEnum.nullable().optional(),
+  education: EducationEnum.nullable().optional(),
+  address: z.string().nullable().optional(),
+  province: z.string().nullable().optional(),
+  regency: z.string().nullable().optional(),
+  district: z.string().nullable().optional(),
+  village: z.string().nullable().optional(),
+  postal_code: z.string().nullable().optional(),
+  profile_picture_url: z.string().nullable().optional(),
+
+  // System fields
+  is_active: z.boolean().optional(),
+  email_verified: z.boolean().optional(),
+  updated_by: z.string().uuid().nullable().optional(),
+  updated_at: z.date().optional(),
+});
+
+// Schema untuk update response
+export const UpdateUserResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: UserResponseSchema,
+  timestamp: z.string(),
 });
 
 export const DeleteUserByIdRequestSchema = z.object({
@@ -247,5 +290,7 @@ export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>;
 export type GetUsersRequest = z.infer<typeof GetUsersRequestSchema>;
 export type GetUserByIdRequest = z.infer<typeof GetUserByIdRequestSchema>;
 export type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>;
+export type UpdateUserDB = z.infer<typeof UpdateUserDBSchema>;
+export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>;
 export type UpdateUserByIdRequest = z.infer<typeof UpdateUserByIdRequestSchema>;
 export type DeleteUserByIdRequest = z.infer<typeof DeleteUserByIdRequestSchema>;

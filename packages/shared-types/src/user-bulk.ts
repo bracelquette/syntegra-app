@@ -4,7 +4,7 @@ import {
   GenderEnum,
   ReligionEnum,
   EducationEnum,
-  UserDataSchema,
+  UserResponseSchema,
 } from "./user";
 
 // ==================== BULK USER CREATION SCHEMAS ====================
@@ -93,7 +93,7 @@ export const BulkUserResultSchema = z.object({
   name: z.string(),
   email: z.string(),
   status: z.enum(["success", "error", "skipped"]),
-  user_data: UserDataSchema.optional(), // Only present if status is success
+  user_data: UserResponseSchema.optional(), // Only present if status is success
   error: z
     .object({
       field: z.string().optional(),

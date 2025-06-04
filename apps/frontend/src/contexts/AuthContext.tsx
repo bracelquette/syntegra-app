@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data.data.tokens.access_token,
           data.data.tokens.refresh_token
         );
-        setUser(data.data.user);
+        setUser(data.data.user as User);
 
         // Redirect based on role
         if (data.data.user.role === "admin") {
@@ -237,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data: ProfileResponse = await response.json();
 
       if (data.success && data.data) {
-        setUser(data.data);
+        setUser(data.data as User);
         return true;
       }
 

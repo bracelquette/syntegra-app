@@ -129,6 +129,32 @@ export const LoginResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+// Participant Login Response
+export const ParticipantLoginResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    user: AuthUserDataSchema.refine((user) => user.role === "participant", {
+      message: "User must be a participant",
+    }),
+    tokens: AuthTokensSchema,
+  }),
+  timestamp: z.string(),
+});
+
+// Admin Login Response
+export const AdminLoginResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    user: AuthUserDataSchema.refine((user) => user.role === "admin", {
+      message: "User must be an admin",
+    }),
+    tokens: AuthTokensSchema,
+  }),
+  timestamp: z.string(),
+});
+
 // Refresh Token Response
 export const RefreshTokenResponseSchema = z.object({
   success: z.literal(true),
@@ -179,6 +205,10 @@ export type LogoutRequest = z.infer<typeof LogoutRequestSchema>;
 export type AuthUserData = z.infer<typeof AuthUserDataSchema>;
 export type AuthTokens = z.infer<typeof AuthTokensSchema>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type ParticipantLoginResponse = z.infer<
+  typeof ParticipantLoginResponseSchema
+>;
+export type AdminLoginResponse = z.infer<typeof AdminLoginResponseSchema>;
 export type RefreshTokenResponse = z.infer<typeof RefreshTokenResponseSchema>;
 export type ProfileResponse = z.infer<typeof ProfileResponseSchema>;
 export type AuthSuccessResponse = z.infer<typeof AuthSuccessResponseSchema>;
