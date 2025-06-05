@@ -65,9 +65,10 @@ import type { UserData, GetUsersRequest } from "shared-types";
 import { Label } from "@/components/ui/label";
 import { useModalStore } from "@/stores/useModalStore";
 import { CreateUserDialog } from "@/components/modals/CreateUserDialog";
+import { UpdateUserDialog } from "@/components/modals/UpdateUserDialog";
 
 export default function UsersManagementPage() {
-  const { openCreateUserModal } = useModalStore();
+  const { openCreateUserModal, openEditUserModal } = useModalStore();
 
   // Filter states
   const [filters, setFilters] = useState<GetUsersRequest>({
@@ -416,7 +417,9 @@ export default function UsersManagementPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 Lihat Detail
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => openEditUserModal(user.id)}
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Peserta
                               </DropdownMenuItem>
@@ -562,6 +565,7 @@ export default function UsersManagementPage() {
 
       {/* Modals */}
       <CreateUserDialog />
+      <UpdateUserDialog />
     </div>
   );
 }
