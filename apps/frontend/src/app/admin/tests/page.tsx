@@ -499,21 +499,25 @@ export default function AdminTestsPage() {
                   tests.map((test) => (
                     <TableRow key={test.id}>
                       <TableCell>
-                        <div className="space-y-2">
-                          <div className="font-medium">{test.name}</div>
-                          <div className="flex items-center gap-2">
-                            <CategoryBadge
-                              category={
-                                test.category as keyof typeof CATEGORY_LABELS
-                              }
-                            />
-                          </div>
-                          {test.description && (
-                            <div className="text-sm text-muted-foreground max-w-xs truncate">
-                              {test.description}
+                        <Link href={`/admin/tests/${test.id}`}>
+                          <div className="space-y-2">
+                            <div className="font-medium hover:underline cursor-pointer">
+                              {test.name}
                             </div>
-                          )}
-                        </div>
+                            <div className="flex items-center gap-2">
+                              <CategoryBadge
+                                category={
+                                  test.category as keyof typeof CATEGORY_LABELS
+                                }
+                              />
+                            </div>
+                            {test.description && (
+                              <div className="text-sm text-muted-foreground max-w-xs truncate">
+                                {test.description}
+                              </div>
+                            )}
+                          </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-2">

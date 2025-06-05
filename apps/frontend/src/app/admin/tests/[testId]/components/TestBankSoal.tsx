@@ -50,10 +50,15 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  CheckCircle,
+  XCircle,
+  Settings,
   ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuestions } from "@/hooks/useQuestions";
+import { useQuestionDialogStore } from "@/stores/useQuestionDialogStore";
+import { AddQuestionDialog } from "./AddQuestionDialog";
 
 interface TestData {
   id: string;
@@ -108,6 +113,9 @@ export function TestBankSoal({ testId, test }: TestBankSoalProps) {
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
   const [deleteQuestionText, setDeleteQuestionText] = useState("");
   const itemsPerPage = 10;
+
+  // Zustand store
+  const { openCreateDialog, openEditDialog } = useQuestionDialogStore();
 
   // API calls
   const {
@@ -246,18 +254,94 @@ export function TestBankSoal({ testId, test }: TestBankSoalProps) {
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold">Bank Soal</h2>
-          <p className="text-muted-foreground text-sm">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Bank Soal</h2>
+          <p className="text-muted-foreground">
             Kelola bank soal untuk tes <strong>{test.name}</strong>. Tambah,
             edit, atau hapus pertanyaan sesuai kebutuhan.
           </p>
         </div>
 
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Tambah Soal Baru
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              questionsQuery.refetch();
+              statsQuery.refetch();
+            }}
+            disabled={questionsQuery.isFetching}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${questionsQuery.isFetching ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+          <Button variant="outline">
+            <Settings className="h-4 w-4 mr-2" />
+            Pengaturan
+          </Button>
+          <Button className="gap-2" onClick={() => openCreateDialog(testId)}>
+            <Plus className="h-4 w-4" />
+            Tambah Soal Baru
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Soal</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats?.total_questions || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Pertanyaan tersedia</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Wajib</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats?.required_questions || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Soal wajib dijawab</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Opsional</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {stats?.optional_questions || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Soal opsional</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Rata-rata Waktu
+            </CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {Math.round(stats?.avg_time_limit || 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">Detik per soal</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filter dan Pencarian */}
@@ -353,15 +437,15 @@ export function TestBankSoal({ testId, test }: TestBankSoalProps) {
                 <h3 className="text-lg font-semibold mb-2">Belum Ada Soal</h3>
                 <p className="text-muted-foreground mb-4">
                   {questionsQuery.isFetching ? (
-                    <div className="flex items-center justify-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       <Loader2 className="size-4 animate-spin" />
                       Memuat data...
-                    </div>
+                    </span>
                   ) : (
                     "Mulai dengan menambahkan soal pertama untuk tes ini"
                   )}
                 </p>
-                <Button>
+                <Button onClick={() => openCreateDialog(testId)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Tambah Soal Pertama
                 </Button>
@@ -536,7 +620,11 @@ export function TestBankSoal({ testId, test }: TestBankSoalProps) {
                               <Eye className="mr-2 h-4 w-4" />
                               Lihat Detail
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                openEditDialog(testId, question.id)
+                              }
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Soal
                             </DropdownMenuItem>
@@ -677,6 +765,9 @@ export function TestBankSoal({ testId, test }: TestBankSoalProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Question Dialog */}
+      <AddQuestionDialog />
     </div>
   );
 }
