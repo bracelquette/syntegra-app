@@ -423,6 +423,99 @@ export const UpdateQuestionSequenceResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+// Base question schema for bulk operations
+export const BulkQuestionSchema = z.object({
+  question: z.string().min(1, "Question text is required"),
+  question_type: z.enum([
+    "multiple_choice",
+    "true_false",
+    "text",
+    "rating_scale",
+    "drawing",
+    "sequence",
+    "matrix",
+  ]),
+  options: z
+    .array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+        score: z.number().optional(),
+      })
+    )
+    .optional(),
+  correct_answer: z.string().optional(),
+  time_limit: z.number().positive().optional(),
+  image_url: z.string().url().optional(),
+  audio_url: z.string().url().optional(),
+  scoring_key: z
+    .record(z.string(), z.union([z.number(), z.string()]))
+    .optional(),
+  is_required: z.boolean().default(true),
+});
+
+// Individual question response for bulk operations
+export const BulkQuestionResponseSchema = z.object({
+  id: z.string(),
+  question: z.string(),
+  question_type: z.enum([
+    "multiple_choice",
+    "true_false",
+    "text",
+    "rating_scale",
+    "drawing",
+    "sequence",
+    "matrix",
+  ]),
+  sequence: z.number(),
+  time_limit: z.number().nullable(),
+  is_required: z.boolean(),
+  created_at: z.string().datetime(),
+});
+
+// Bulk create questions response data
+export const BulkCreateQuestionsDataSchema = z.object({
+  created_count: z.number(),
+  questions: z.array(BulkQuestionResponseSchema),
+  test_id: z.string(),
+  new_total_questions: z.number(),
+});
+
+// Database schema for creating questions
+export const CreateQuestionDBSchema = z.object({
+  test_id: z.string(),
+  question: z.string(),
+  question_type: z.enum([
+    "multiple_choice",
+    "true_false",
+    "text",
+    "rating_scale",
+    "drawing",
+    "sequence",
+    "matrix",
+  ]),
+  options: z
+    .array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+        score: z.number().optional(),
+      })
+    )
+    .nullable()
+    .optional(),
+  correct_answer: z.string().nullable().optional(),
+  sequence: z.number(),
+  time_limit: z.number().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  audio_url: z.string().nullable().optional(),
+  scoring_key: z
+    .record(z.string(), z.union([z.number(), z.string()]))
+    .nullable()
+    .optional(),
+  is_required: z.boolean().default(true),
+});
+
 // ==================== TYPE EXPORTS ====================
 export type QuestionType = z.infer<typeof QuestionTypeEnum>;
 export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
@@ -491,6 +584,11 @@ export type UpdateQuestionSequenceByIdRequest = z.infer<
 >;
 export type UpdateQuestionSequenceResponse = z.infer<
   typeof UpdateQuestionSequenceResponseSchema
+>;
+export type BulkQuestion = z.infer<typeof BulkQuestionSchema>;
+export type BulkQuestionResponse = z.infer<typeof BulkQuestionResponseSchema>;
+export type BulkCreateQuestionsData = z.infer<
+  typeof BulkCreateQuestionsDataSchema
 >;
 
 // ==================== DATABASE TYPES ====================
