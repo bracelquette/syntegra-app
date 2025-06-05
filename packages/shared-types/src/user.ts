@@ -286,7 +286,7 @@ export const UpdateUserRequestSchema = z.object({
   gender: GenderEnum.optional(),
   phone: z.string().max(20, "Phone number too long").optional(),
   birth_place: z.string().max(100, "Birth place too long").optional(),
-  birth_date: z.string().datetime().optional(),
+  birth_date: z.date().optional(),
   religion: ReligionEnum.optional(),
   education: EducationEnum.optional(),
   address: z.string().optional(),
