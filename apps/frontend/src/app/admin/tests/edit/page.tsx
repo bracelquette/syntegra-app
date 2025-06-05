@@ -187,7 +187,7 @@ export default function EditTestPage() {
       });
 
       // Redirect to tests page
-      router.push("/admin/tests");
+      router.back();
     } catch (error: any) {
       console.error("Error updating test:", error);
       toast.error("Gagal memperbarui tes", {
@@ -204,10 +204,10 @@ export default function EditTestPage() {
   const handleCancel = () => {
     if (form.formState.isDirty) {
       if (window.confirm("Perubahan belum disimpan. Yakin ingin keluar?")) {
-        router.push("/admin/tests");
+        router.back();
       }
     } else {
-      router.push("/admin/tests");
+      router.back();
     }
   };
 
