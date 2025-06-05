@@ -563,7 +563,7 @@ export default function AdminTestsPage() {
                                 Lihat Detail
                               </DropdownMenuItem>
                             </Link>
-                            <Link href={`/admin/tests/${test.id}/edit`}>
+                            <Link href={`/admin/tests/edit?testId=${test.id}`}>
                               <DropdownMenuItem>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Tes
