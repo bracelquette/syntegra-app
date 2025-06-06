@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTests } from "@/hooks/useTests";
-import { TestOverview } from "./components/TestOverview";
-import { TestBankSoal } from "./components/TestBankSoal";
+import { TestOverview } from "./_components/TestOverview";
+import { TestBankSoal } from "./_components/TestBankSoal";
 
 // Module type labels mapping
 const MODULE_TYPE_LABELS = {
