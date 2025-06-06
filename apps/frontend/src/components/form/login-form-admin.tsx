@@ -50,8 +50,8 @@ export function LoginFormAdmin({
     resolver: zodResolver(adminLoginSchema),
     mode: "onChange",
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin-new@example.com",
+      password: "AdminNew123!",
     },
   });
 
