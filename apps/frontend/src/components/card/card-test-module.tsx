@@ -33,25 +33,25 @@ const CATEGORY_LABELS = {
 } as const;
 
 interface TestData {
-  id: string;
-  name: string;
-  description?: string;
-  module_type: keyof typeof MODULE_TYPE_LABELS;
-  category: keyof typeof CATEGORY_LABELS;
-  time_limit: number;
-  icon?: string;
-  card_color?: string;
-  test_prerequisites?: string[];
-  display_order?: number;
-  subcategory?: string[];
-  total_questions?: number;
-  passing_score?: number;
-  status?: "active" | "inactive" | "archived";
-  instructions?: string;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
-  updated_by?: string;
+  id: string | undefined;
+  name: string | undefined;
+  description?: string | undefined;
+  module_type: keyof typeof MODULE_TYPE_LABELS | undefined;
+  category: keyof typeof CATEGORY_LABELS | undefined;
+  time_limit: number | undefined;
+  icon?: string | undefined;
+  card_color?: string | undefined;
+  test_prerequisites?: string[] | undefined;
+  display_order?: number | undefined;
+  subcategory?: string[] | undefined;
+  total_questions?: number | undefined;
+  passing_score?: number | undefined;
+  status?: "active" | "inactive" | "archived" | undefined;
+  instructions?: string | undefined;
+  created_at?: string | undefined;
+  updated_at?: string | undefined;
+  created_by?: string | undefined;
+  updated_by?: string | undefined;
 }
 
 const CARD_COLOR_VARIANTS = {
@@ -110,7 +110,7 @@ const getGradientClass = (cardColor?: string): string => {
   );
 };
 
-const StatusBadge = ({
+export const StatusBadge = ({
   status,
 }: {
   status: "active" | "inactive" | "archived";

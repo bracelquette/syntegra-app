@@ -47,6 +47,9 @@ export default function EditTestPage() {
   const watchedCardColor = form.watch("card_color");
   const watchedName = form.watch("name");
   const watchedDescription = form.watch("description");
+  const watchedStatus = form.watch("status");
+  const watchedTimeLimit = form.watch("time_limit");
+  const watchedCategory = form.watch("category");
 
   // Redirect if no testId
   useEffect(() => {
@@ -308,6 +311,9 @@ export default function EditTestPage() {
               availableCategories={availableCategories}
               test={test}
               initialDataLoaded={initialDataLoaded}
+              watchedStatus={watchedStatus}
+              watchedTimeLimit={watchedTimeLimit}
+              watchedCategory={watchedCategory}
             />
 
             {/* Sidebar Tips Component */}

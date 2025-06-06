@@ -28,7 +28,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Save, Loader2, Brain, Target, FileText, Palette } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  Brain,
+  Target,
+  FileText,
+  Palette,
+  Clock10,
+  NotebookPen,
+} from "lucide-react";
 import {
   moduleTypeOptions,
   statusOptions,
@@ -36,6 +45,7 @@ import {
 } from "@/lib/validations/test";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { StatusBadge } from "@/components/card/card-test-module";
 
 interface TestData {
   id: string;
@@ -48,7 +58,7 @@ interface TestData {
   card_color: string | null;
   passing_score: number | null;
   display_order: number;
-  status: string;
+  status: "active" | "inactive" | "archived";
   created_at: string | Date;
   updated_at: string | Date;
   total_questions: number;
@@ -64,6 +74,9 @@ interface FormEditTestProps {
   watchedCardColor: string | undefined;
   watchedName: string | undefined;
   watchedDescription: string | undefined;
+  watchedStatus: "active" | "inactive" | "archived" | undefined;
+  watchedTimeLimit: number | undefined;
+  watchedCategory: string | undefined;
   availableCategories: readonly {
     readonly value: string;
     readonly label: string;
@@ -82,6 +95,9 @@ export function FormEditTest({
   watchedCardColor,
   watchedName,
   watchedDescription,
+  watchedCategory,
+  watchedTimeLimit,
+  watchedStatus,
   availableCategories,
   test,
   initialDataLoaded,
@@ -98,6 +114,9 @@ export function FormEditTest({
       </div>
     );
   }
+
+  console.log("test : ", test);
+  console.log("watchedCardColor : ", watchedCardColor);
 
   return (
     <div className="lg:col-span-2 space-y-6">
@@ -227,97 +246,72 @@ export function FormEditTest({
                 />
               </div>
 
+              {/* rounded-xl p-4 shadow-lg transition-all duration-200 cursor-pointer hover:shadow-xl transform hover:scale-105 */}
+
               {/* Preview */}
               <div className="border-t pt-4">
                 <Label className="text-sm font-medium mb-2 block">
                   Preview Card
                 </Label>
-                <div className="w-full max-w-sm">
-                  <div
-                    className={`p-4 rounded-lg border transition-all ${
-                      watchedCardColor ||
-                      test.card_color ||
-                      "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {(watchedIcon || test.icon) && (
-                        <span className="text-2xl">
-                          {watchedIcon || test.icon}
+                <div className="flex justify-center items-center">
+                  <div className="w-full max-w-sm">
+                    <div
+                      className={`p-4 rounded-xl hover:shadow-xl transition-all duration-200 cursor-pointer transform hover:scale-105 bg-gradient-to-br  ${
+                        watchedCardColor ||
+                        test.card_color ||
+                        "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-3xl">
+                          {(watchedIcon || test.icon) && (
+                            <span className="text-2xl">
+                              {watchedIcon || test.icon}
+                            </span>
+                          )}
                         </span>
-                      )}
-                      <div>
-                        <h3 className="font-semibold">
-                          {watchedName || test.name || "Nama Tes"}
-                        </h3>
-                        <p className="text-sm opacity-90">
-                          {watchedDescription ||
-                            test.description ||
-                            "Deskripsi tes"}
+                        <StatusBadge status={watchedStatus || test.status} />
+                      </div>
+                      <h3
+                        className={`font-bold text-md mb-1 line-clamp-1 text-gray-100`}
+                      >
+                        {watchedName || test.name || "Nama Tes"}
+                      </h3>
+                      <p className="text-xs line-clamp-2 opacity-90 text-gray-100 mb-3">
+                        {watchedDescription ||
+                          test.description ||
+                          "Deskripsi tes"}
+                      </p>
+
+                      <div className="flex items-center justify-between text-gray-100">
+                        <div className="flex items-center gap-1">
+                          <Clock10 className="h-4 w-4" />
+                          <span
+                            className={`text-xs`}
+                          >{`${watchedTimeLimit || test.time_limit} menit`}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <NotebookPen className="h-4 w-4" />
+                          <span
+                            className={`text-xs`}
+                          >{`${test.total_questions} soal`}</span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`mt-2 pt-2 border-t border-gray-300 text-gray-100`}
+                      >
+                        <p className={`text-xs `}>
+                          • {watchedModuleType || test.module_type}
+                        </p>
+                        <p className={`text-xs `}>
+                          • {watchedCategory || test.category}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Current vs New Comparison */}
-              {form.formState.isDirty &&
-                (watchedIcon !== test.icon ||
-                  watchedCardColor !== test.card_color) && (
-                  <div className="border-t pt-4">
-                    <Label className="text-sm font-medium mb-2 block">
-                      Perbandingan (Sebelum vs Sesudah)
-                    </Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Before */}
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Sebelum:
-                        </p>
-                        <div
-                          className={`p-3 rounded-lg border transition-all ${
-                            test.card_color || "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {test.icon && (
-                              <span className="text-lg">{test.icon}</span>
-                            )}
-                            <div>
-                              <h4 className="font-medium text-sm">
-                                {test.name}
-                              </h4>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* After */}
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Sesudah:
-                        </p>
-                        <div
-                          className={`p-3 rounded-lg border transition-all ${
-                            watchedCardColor || "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {watchedIcon && (
-                              <span className="text-lg">{watchedIcon}</span>
-                            )}
-                            <div>
-                              <h4 className="font-medium text-sm">
-                                {watchedName || test.name}
-                              </h4>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
             </CardContent>
           </Card>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +14,6 @@ import {
   RefreshCw,
   AlertCircle,
   Loader2,
-  Eye,
-  Play,
 } from "lucide-react";
 import Link from "next/link";
 import { useTests } from "@/hooks/useTests";
@@ -79,8 +77,40 @@ const StatusBadge = ({
 
 export default function TestDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const testId = params.testId as string;
-  const [activeTab, setActiveTab] = useState("overview");
+
+  // Get initial tab from URL or default to overview
+  const getInitialTab = () => {
+    const urlTab = searchParams.get("tab");
+    // Map URL tab names to internal tab names
+    if (urlTab === "question") return "bank-soal";
+    if (urlTab === "overview") return "overview";
+    return "overview"; // default
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    // Map internal tab names to URL tab names
+    const urlTabName = value === "bank-soal" ? "question" : value;
+
+    // Update URL with new tab parameter
+    const newUrl = `/admin/tests/${testId}?tab=${urlTabName}`;
+    router.replace(newUrl, { scroll: false });
+  };
+
+  // Sync tab with URL params on mount and when searchParams change
+  useEffect(() => {
+    const newTab = getInitialTab();
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams]);
 
   // API calls
   const { useGetTestById } = useTests();
@@ -217,7 +247,7 @@ export default function TestDetailPage() {
       {/* Content */}
       <Tabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={handleTabChange}
         className="space-y-6"
       >
         <TabsList className="grid w-full grid-cols-2">

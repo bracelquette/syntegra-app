@@ -148,6 +148,7 @@ interface Test {
   passing_score?: number | null;
   status: "active" | "inactive" | "archived";
   created_at: string | Date;
+  icon?: string;
 }
 
 interface Meta {
@@ -227,9 +228,10 @@ export default function TableTest({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nama & Kategori</TableHead>
-                  <TableHead>Tipe & Durasi</TableHead>
+                  <TableHead>Nama & Deskripsi</TableHead>
                   <TableHead>Pertanyaan</TableHead>
+                  <TableHead>Tipe & Durasi</TableHead>
+                  <TableHead>Kategori</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Dibuat</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
@@ -257,25 +259,29 @@ export default function TableTest({
                   tests.map((test) => (
                     <TableRow key={test.id}>
                       <TableCell>
-                        <Link href={`/admin/tests/${test.id}`}>
+                        <Link href={`/admin/tests/${test.id}?tab=overview`}>
                           <div className="space-y-2">
                             <div className="font-medium hover:underline cursor-pointer">
-                              {test.name}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <CategoryBadge
-                                category={
-                                  test.category as keyof typeof CATEGORY_LABELS
-                                }
-                              />
+                              {test.icon} {test.name}
                             </div>
                             {test.description && (
-                              <div className="text-sm text-muted-foreground max-w-xs truncate">
+                              <div className="text-xs text-muted-foreground max-w-sc truncate line-clamp-2">
                                 {test.description}
                               </div>
                             )}
                           </div>
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <FileText className="h-3 w-3 text-muted-foreground" />
+                          {test.total_questions || 0} soal
+                        </div>
+                        {test.passing_score && (
+                          <div className="text-xs text-muted-foreground">
+                            Passing: {test.passing_score}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-2">
@@ -291,15 +297,11 @@ export default function TableTest({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <FileText className="h-3 w-3 text-muted-foreground" />
-                          {test.total_questions || 0} soal
-                        </div>
-                        {test.passing_score && (
-                          <div className="text-xs text-muted-foreground">
-                            Passing: {test.passing_score}
-                          </div>
-                        )}
+                        <CategoryBadge
+                          category={
+                            test.category as keyof typeof CATEGORY_LABELS
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={test.status || "active"} />
@@ -319,7 +321,7 @@ export default function TableTest({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Aksi Tes</DropdownMenuLabel>
-                            <Link href={`/admin/tests/${test.id}`}>
+                            <Link href={`/admin/tests/${test.id}?tab=overview`}>
                               <DropdownMenuItem>
                                 <Eye className="mr-2 h-4 w-4" />
                                 Lihat Detail
@@ -331,21 +333,13 @@ export default function TableTest({
                                 Edit Tes
                               </DropdownMenuItem>
                             </Link>
-                            <DropdownMenuItem>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplikasi
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <Link href={`/admin/tests/${test.id}/questions`}>
+                            <Link href={`/admin/tests/${test.id}?tab=question`}>
                               <DropdownMenuItem>
                                 <FileText className="mr-2 h-4 w-4" />
                                 Kelola Pertanyaan
                               </DropdownMenuItem>
                             </Link>
-                            <DropdownMenuItem>
-                              <BarChart3 className="mr-2 h-4 w-4" />
-                              Lihat Statistik
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-red-600"
