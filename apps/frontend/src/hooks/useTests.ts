@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 import type {
+  TestData,
   GetTestsRequest,
   GetTestsResponse,
   GetTestByIdResponse,
@@ -11,8 +12,9 @@ import type {
   UpdateTestRequest,
   UpdateTestResponse,
   DeleteTestResponse,
-  TestErrorResponse,
-  TestStats,
+  GetTestStatsResponse,
+  GetTestFilterOptionsResponse,
+  UpdateTestDisplayOrderRequest,
 } from "shared-types";
 
 export function useTests() {
@@ -29,16 +31,16 @@ export function useTests() {
     if (params?.module_type) queryParams.set("module_type", params.module_type);
     if (params?.category) queryParams.set("category", params.category);
     if (params?.status) queryParams.set("status", params.status);
-    if (params?.time_limit_min !== undefined)
+    if (params?.time_limit_min)
       queryParams.set("time_limit_min", params.time_limit_min.toString());
-    if (params?.time_limit_max !== undefined)
+    if (params?.time_limit_max)
       queryParams.set("time_limit_max", params.time_limit_max.toString());
-    if (params?.total_questions_min !== undefined)
+    if (params?.total_questions_min)
       queryParams.set(
         "total_questions_min",
         params.total_questions_min.toString()
       );
-    if (params?.total_questions_max !== undefined)
+    if (params?.total_questions_max)
       queryParams.set(
         "total_questions_max",
         params.total_questions_max.toString()
@@ -71,82 +73,18 @@ export function useTests() {
   const useGetTestStats = () => {
     return useQuery({
       queryKey: ["tests", "stats"],
-      queryFn: () =>
-        apiCall<{
-          success: boolean;
-          data: TestStats;
-          message: string;
-          timestamp: string;
-        }>("/tests/stats/summary"),
-      staleTime: 2 * 60 * 1000, // 2 minutes
+      queryFn: () => apiCall<GetTestStatsResponse>("/tests/stats/summary"),
+      staleTime: 10 * 60 * 1000, // 10 minutes
     });
   };
 
-  // Get test categories
-  const useGetTestCategories = () => {
-    return useQuery({
-      queryKey: ["tests", "categories"],
-      queryFn: () =>
-        apiCall<{
-          success: boolean;
-          data: string[];
-          message: string;
-          timestamp: string;
-        }>("/tests/categories"),
-      staleTime: 30 * 60 * 1000, // 30 minutes - categories don't change often
-    });
-  };
-
-  // Get test module types
-  const useGetTestModuleTypes = () => {
-    return useQuery({
-      queryKey: ["tests", "module-types"],
-      queryFn: () =>
-        apiCall<{
-          success: boolean;
-          data: string[];
-          message: string;
-          timestamp: string;
-        }>("/tests/module-types"),
-      staleTime: 30 * 60 * 1000, // 30 minutes
-    });
-  };
-
-  // Get filter options for dropdowns
+  // Get test filter options
   const useGetTestFilterOptions = () => {
     return useQuery({
       queryKey: ["tests", "filter-options"],
       queryFn: () =>
-        apiCall<{
-          success: boolean;
-          data: {
-            module_types: Array<{ value: string; label: string }>;
-            categories: Array<{ value: string; label: string }>;
-            statuses: Array<{ value: string; label: string }>;
-          };
-          message: string;
-          timestamp: string;
-        }>("/tests/filters/options"),
-      staleTime: 30 * 60 * 1000,
-    });
-  };
-
-  // Get categories by module type
-  const useGetCategoriesByModuleType = (moduleType: string) => {
-    return useQuery({
-      queryKey: ["tests", "categories", moduleType],
-      queryFn: () =>
-        apiCall<{
-          success: boolean;
-          data: {
-            module_type: string;
-            categories: Array<{ value: string; label: string }>;
-          };
-          message: string;
-          timestamp: string;
-        }>(`/tests/categories/${moduleType}`),
-      enabled: !!moduleType,
-      staleTime: 30 * 60 * 1000,
+        apiCall<GetTestFilterOptionsResponse>("/tests/filters/options"),
+      staleTime: 30 * 60 * 1000, // 30 minutes
     });
   };
 
@@ -178,6 +116,26 @@ export function useTests() {
     });
   };
 
+  // Update test display order
+  const useUpdateTestDisplayOrder = () => {
+    return useMutation({
+      mutationFn: ({
+        id,
+        data,
+      }: {
+        id: string;
+        data: UpdateTestDisplayOrderRequest;
+      }) =>
+        apiCall<UpdateTestResponse>(`/tests/${id}/display-order`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["tests"] });
+      },
+    });
+  };
+
   // Delete test
   const useDeleteTest = () => {
     return useMutation({
@@ -191,37 +149,14 @@ export function useTests() {
     });
   };
 
-  // Update test display order
-  const useUpdateTestDisplayOrder = () => {
-    return useMutation({
-      mutationFn: ({
-        id,
-        display_order,
-      }: {
-        id: string;
-        display_order: number;
-      }) =>
-        apiCall<UpdateTestResponse>(`/tests/${id}/display-order`, {
-          method: "PUT",
-          body: JSON.stringify({ display_order }),
-        }),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["tests"] });
-      },
-    });
-  };
-
   return {
     useGetTests,
     useGetTestById,
     useGetTestStats,
-    useGetTestCategories,
-    useGetTestModuleTypes,
     useGetTestFilterOptions,
-    useGetCategoriesByModuleType,
     useCreateTest,
     useUpdateTest,
-    useDeleteTest,
     useUpdateTestDisplayOrder,
+    useDeleteTest,
   };
 }

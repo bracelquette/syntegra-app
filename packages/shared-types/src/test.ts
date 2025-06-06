@@ -318,6 +318,32 @@ export const GetTestStatsResponseSchema = z.object({
   timestamp: z.string(),
 });
 
+export const GetTestFilterOptionsResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    module_types: z.array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+      })
+    ),
+    categories: z.array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+      })
+    ),
+    statuses: z.array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+      })
+    ),
+  }),
+  timestamp: z.string().datetime(),
+});
+
 // Error response schema (reuse from user.ts)
 export const TestErrorDetailSchema = z.object({
   field: z.string().optional(),
@@ -431,6 +457,9 @@ export type TestData = z.infer<typeof TestDataSchema>;
 export type TestErrorDetail = z.infer<typeof TestErrorDetailSchema>;
 export type TestStats = z.infer<typeof TestStatsSchema>;
 export type GetTestStatsResponse = z.infer<typeof GetTestStatsResponseSchema>;
+export type GetTestFilterOptionsResponse = z.infer<
+  typeof GetTestFilterOptionsResponseSchema
+>;
 export type GetCategoriesResponse = z.infer<typeof GetCategoriesResponseSchema>;
 export type GetModuleTypesResponse = z.infer<
   typeof GetModuleTypesResponseSchema

@@ -63,6 +63,18 @@ export const createTestSchema = z.object({
     .max(480, "Batas waktu maksimal 480 menit (8 jam)")
     .int("Batas waktu harus berupa bilangan bulat"),
 
+  icon: z
+    .string()
+    .max(10, "Icon maksimal 10 karakter")
+    .optional()
+    .or(z.literal("")),
+
+  card_color: z
+    .string()
+    .max(100, "Warna kartu maksimal 100 karakter")
+    .optional()
+    .or(z.literal("")),
+
   passing_score: z
     .number({
       invalid_type_error: "Skor kelulusan harus berupa angka",
@@ -98,6 +110,8 @@ export const createTestDefaultValues: Partial<CreateTestFormData> = {
   module_type: undefined,
   category: undefined,
   time_limit: 30,
+  icon: "",
+  card_color: "",
   passing_score: 0,
   display_order: 0,
   status: "active",
