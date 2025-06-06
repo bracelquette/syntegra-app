@@ -33,7 +33,31 @@ export async function getTestsListHandler(
     }
 
     // Get query parameters (already validated by zValidator)
-    const query = c.req.query() as unknown as GetTestsRequest;
+    const rawQuery = c.req.query();
+    const query: GetTestsRequest = {
+      page: Number(rawQuery.page) || 1,
+      limit: Number(rawQuery.limit) || 10,
+      search: rawQuery.search,
+      module_type: rawQuery.module_type as any,
+      category: rawQuery.category as any,
+      status: rawQuery.status as any,
+      sort_by: (rawQuery.sort_by as any) || "display_order",
+      sort_order: (rawQuery.sort_order as any) || "asc",
+      time_limit_min: rawQuery.time_limit_min
+        ? Number(rawQuery.time_limit_min)
+        : undefined,
+      time_limit_max: rawQuery.time_limit_max
+        ? Number(rawQuery.time_limit_max)
+        : undefined,
+      total_questions_min: rawQuery.total_questions_min
+        ? Number(rawQuery.total_questions_min)
+        : undefined,
+      total_questions_max: rawQuery.total_questions_max
+        ? Number(rawQuery.total_questions_max)
+        : undefined,
+      created_from: rawQuery.created_from,
+      created_to: rawQuery.created_to,
+    };
 
     // Get database connection
     const env = getEnv(c);
@@ -125,6 +149,15 @@ export async function getTestsListHandler(
     // Calculate pagination
     const offset = (query.page - 1) * query.limit;
 
+    // Debug logging
+    console.log("Pagination debug:", {
+      page: query.page,
+      limit: query.limit,
+      offset: offset,
+      pageType: typeof query.page,
+      limitType: typeof query.limit,
+    });
+
     // Get total count for pagination
     const [{ totalCount }] = await db
       .select({ totalCount: count() })
@@ -159,6 +192,14 @@ export async function getTestsListHandler(
       .orderBy(orderBy)
       .limit(query.limit)
       .offset(offset);
+
+    // Debug logging for results
+    console.log("Query results debug:", {
+      totalCount: totalCount,
+      resultCount: testsList.length,
+      requestedLimit: query.limit,
+      offset: offset,
+    });
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / query.limit);

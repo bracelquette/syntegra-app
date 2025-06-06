@@ -32,7 +32,7 @@ export default function AdminTestsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // API calls
   const {
@@ -91,6 +91,12 @@ export default function AdminTestsPage() {
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
     handleFilterChange();
+  };
+
+  // Handle page limit change
+  const handlePageLimitChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing limit
   };
 
   // Handle delete test
@@ -182,7 +188,9 @@ export default function AdminTestsPage() {
         isLoading={testsQuery.isLoading}
         error={testsQuery.error}
         currentPage={currentPage}
+        itemsPerPage={itemsPerPage}
         onPageChange={setCurrentPage}
+        onPageLimitChange={handlePageLimitChange}
         onRefetch={() => testsQuery.refetch()}
         onDeleteTest={handleDeleteTest}
         isDeleting={deleteTestMutation.isPending}

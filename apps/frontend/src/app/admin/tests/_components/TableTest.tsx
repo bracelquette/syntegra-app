@@ -22,7 +22,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   MoreHorizontal,
   Edit,
@@ -157,7 +165,9 @@ interface TableTestProps {
   isLoading: boolean;
   error?: Error | null;
   currentPage: number;
+  itemsPerPage: number;
   onPageChange: (page: number) => void;
+  onPageLimitChange: (limit: string) => void;
   onRefetch: () => void;
   onDeleteTest: (testId: string, testName: string) => void;
   isDeleting: boolean;
@@ -169,7 +179,9 @@ export default function TableTest({
   isLoading,
   error,
   currentPage,
+  itemsPerPage,
   onPageChange,
+  onPageLimitChange,
   onRefetch,
   onDeleteTest,
   isDeleting,
@@ -354,14 +366,41 @@ export default function TableTest({
           </div>
         )}
 
-        {/* Pagination */}
-        {meta && meta.total_pages > 1 && (
-          <div className="flex items-center justify-between px-2 py-4">
-            <div className="text-sm text-muted-foreground">
-              Menampilkan {(meta.current_page - 1) * meta.per_page + 1} hingga{" "}
-              {Math.min(meta.current_page * meta.per_page, meta.total)} dari{" "}
-              {meta.total} tes
+        {/* Pagination Controls */}
+        <div className="flex flex-col gap-4 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="page-limit" className="text-sm whitespace-nowrap">
+                Tampilkan:
+              </Label>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={onPageLimitChange}
+              >
+                <SelectTrigger id="page-limit" className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">per halaman</span>
             </div>
+
+            {meta && (
+              <div className="text-sm text-muted-foreground">
+                Menampilkan {(meta.current_page - 1) * meta.per_page + 1} hingga{" "}
+                {Math.min(meta.current_page * meta.per_page, meta.total)} dari{" "}
+                {meta.total} tes
+              </div>
+            )}
+          </div>
+
+          {meta && meta.total_pages > 1 && (
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
@@ -411,8 +450,8 @@ export default function TableTest({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );
