@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Search,
@@ -152,6 +153,52 @@ const CategoryBadge = ({
   );
 };
 
+// Skeleton component for statistics cards
+const StatCardSkeleton = () => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-4 w-4" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-8 w-16 mb-2" />
+      <Skeleton className="h-3 w-24" />
+    </CardContent>
+  </Card>
+);
+
+// Skeleton component for filter card
+const FilterCardSkeleton = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Filter className="h-5 w-5" />
+        Filter & Pencarian
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="flex-1">
+          <Skeleton className="h-4 w-16 mb-2" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="w-full md:w-48">
+          <Skeleton className="h-4 w-20 mb-2" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="w-full md:w-48">
+          <Skeleton className="h-4 w-16 mb-2" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="w-full md:w-48">
+          <Skeleton className="h-4 w-12 mb-2" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 export default function AdminTestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [moduleTypeFilter, setModuleTypeFilter] = useState<string>("all");
@@ -220,44 +267,6 @@ export default function AdminTestsPage() {
     }
   };
 
-  // Loading state
-  if (testsQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="size-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Memuat data tes...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (testsQuery.error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <AlertCircle className="size-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-600 mb-2">
-              Gagal Memuat Data
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {testsQuery.error.message ||
-                "Terjadi kesalahan saat memuat data tes"}
-            </p>
-            <Button onClick={() => testsQuery.refetch()} variant="outline">
-              <RefreshCw className="size-4 mr-2" />
-              Coba Lagi
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const tests = testsQuery.data?.data || [];
   const meta = testsQuery.data?.meta;
   const stats = statsQuery.data?.data;
@@ -283,10 +292,10 @@ export default function AdminTestsPage() {
               testsQuery.refetch();
               statsQuery.refetch();
             }}
-            disabled={testsQuery.isFetching}
+            disabled={testsQuery.isFetching || statsQuery.isFetching}
           >
             <RefreshCw
-              className={`h-4 w-4 ${testsQuery.isFetching ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${testsQuery.isFetching || statsQuery.isFetching ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -305,156 +314,188 @@ export default function AdminTestsPage() {
 
       {/* Statistik Singkat */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tes</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_tests || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Tersedia dalam sistem
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tes Aktif</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats?.active_tests || 0}
+        {statsQuery.isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : statsQuery.error ? (
+          <div className="col-span-4 flex items-center justify-center p-8">
+            <div className="text-center">
+              <AlertCircle className="size-8 text-red-500 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Gagal memuat statistik
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">Siap digunakan</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tidak Aktif</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats?.inactive_tests || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Tidak digunakan</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Rata-rata Durasi
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {Math.round(stats?.avg_time_limit || 0)} min
-            </div>
-            <p className="text-xs text-muted-foreground">Waktu pengerjaan</p>
-          </CardContent>
-        </Card>
+          </div>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tes</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.total_tests || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tersedia dalam sistem
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tes Aktif</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {stats?.active_tests || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Siap digunakan</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Tidak Aktif
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats?.inactive_tests || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Tidak digunakan</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Rata-rata Durasi
+                </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {Math.round(stats?.avg_time_limit || 0)} min
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Waktu pengerjaan
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Filter dan Pencarian */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter & Pencarian
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="flex-1">
-              <Label htmlFor="search">Cari Tes</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Cari nama tes, deskripsi..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
+      {filterOptionsQuery.isLoading ? (
+        <FilterCardSkeleton />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filter & Pencarian
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+              <div className="flex-1">
+                <Label htmlFor="search">Cari Tes</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Cari nama tes, deskripsi..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      handleFilterChange();
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="w-full md:w-48">
+                <Label>Tipe Modul</Label>
+                <Select
+                  value={moduleTypeFilter}
+                  onValueChange={(value) => {
+                    setModuleTypeFilter(value);
                     handleFilterChange();
                   }}
-                  className="pl-10"
-                />
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Tipe</SelectItem>
+                    {filterOptionsQuery.data?.data.module_types.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full md:w-48">
+                <Label>Kategori</Label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={(value) => {
+                    setCategoryFilter(value);
+                    handleFilterChange();
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Kategori</SelectItem>
+                    {filterOptionsQuery.data?.data.categories.map(
+                      (category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full md:w-48">
+                <Label>Status</Label>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    handleFilterChange();
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    {filterOptionsQuery.data?.data.statuses.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-
-            <div className="w-full md:w-48">
-              <Label>Tipe Modul</Label>
-              <Select
-                value={moduleTypeFilter}
-                onValueChange={(value) => {
-                  setModuleTypeFilter(value);
-                  handleFilterChange();
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih Tipe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Tipe</SelectItem>
-                  {filterOptionsQuery.data?.data.module_types.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-full md:w-48">
-              <Label>Kategori</Label>
-              <Select
-                value={categoryFilter}
-                onValueChange={(value) => {
-                  setCategoryFilter(value);
-                  handleFilterChange();
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  {filterOptionsQuery.data?.data.categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-full md:w-48">
-              <Label>Status</Label>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => {
-                  setStatusFilter(value);
-                  handleFilterChange();
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  {filterOptionsQuery.data?.data.statuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabel Tests */}
       <Card>
@@ -467,149 +508,172 @@ export default function AdminTestsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama & Kategori</TableHead>
-                  <TableHead>Tipe & Durasi</TableHead>
-                  <TableHead>Pertanyaan</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Dibuat</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tests.length === 0 ? (
+          {testsQuery.error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="size-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                  Gagal Memuat Data
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {testsQuery.error.message ||
+                    "Terjadi kesalahan saat memuat data tes"}
+                </p>
+                <Button onClick={() => testsQuery.refetch()} variant="outline">
+                  <RefreshCw className="size-4 mr-2" />
+                  Coba Lagi
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <div className="text-muted-foreground">
-                        {testsQuery.isFetching ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Loader2 className="size-4 animate-spin" />
-                            Memuat data...
-                          </div>
-                        ) : (
-                          "Tidak ada tes yang ditemukan"
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableHead>Nama & Kategori</TableHead>
+                    <TableHead>Tipe & Durasi</TableHead>
+                    <TableHead>Pertanyaan</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Dibuat</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ) : (
-                  tests.map((test) => (
-                    <TableRow key={test.id}>
-                      <TableCell>
-                        <Link href={`/admin/tests/${test.id}`}>
-                          <div className="space-y-2">
-                            <div className="font-medium hover:underline cursor-pointer">
-                              {test.name}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <CategoryBadge
-                                category={
-                                  test.category as keyof typeof CATEGORY_LABELS
-                                }
-                              />
-                            </div>
-                            {test.description && (
-                              <div className="text-sm text-muted-foreground max-w-xs truncate">
-                                {test.description}
-                              </div>
-                            )}
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <ModuleTypeBadge
-                            moduleType={
-                              test.module_type as keyof typeof MODULE_TYPE_LABELS
-                            }
-                          />
-                          <div className="flex items-center gap-1 text-sm">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            {test.time_limit} menit
-                          </div>
+                </TableHeader>
+                <TableBody>
+                  {testsQuery.isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="size-4 animate-spin" />
+                          Memuat data...
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <FileText className="h-3 w-3 text-muted-foreground" />
-                          {test.total_questions || 0} soal
-                        </div>
-                        {test.passing_score && (
-                          <div className="text-xs text-muted-foreground">
-                            Passing: {test.passing_score}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={test.status || "active"} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-sm">
-                          <div>{formatDate(test.created_at as any)}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Buka menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Aksi Tes</DropdownMenuLabel>
-                            <Link href={`/admin/tests/${test.id}`}>
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Lihat Detail
-                              </DropdownMenuItem>
-                            </Link>
-                            <Link href={`/admin/tests/edit?testId=${test.id}`}>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Tes
-                              </DropdownMenuItem>
-                            </Link>
-                            <DropdownMenuItem>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplikasi
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <Link href={`/admin/tests/${test.id}/questions`}>
-                              <DropdownMenuItem>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Kelola Pertanyaan
-                              </DropdownMenuItem>
-                            </Link>
-                            <DropdownMenuItem>
-                              <BarChart3 className="mr-2 h-4 w-4" />
-                              Lihat Statistik
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() =>
-                                handleDeleteTest(test.id, test.name)
-                              }
-                              disabled={deleteTestMutation.isPending}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {deleteTestMutation.isPending
-                                ? "Menghapus..."
-                                : "Hapus Tes"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : tests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="text-muted-foreground">
+                          Tidak ada tes yang ditemukan
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tests.map((test) => (
+                      <TableRow key={test.id}>
+                        <TableCell>
+                          <Link href={`/admin/tests/${test.id}`}>
+                            <div className="space-y-2">
+                              <div className="font-medium hover:underline cursor-pointer">
+                                {test.name}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <CategoryBadge
+                                  category={
+                                    test.category as keyof typeof CATEGORY_LABELS
+                                  }
+                                />
+                              </div>
+                              {test.description && (
+                                <div className="text-sm text-muted-foreground max-w-xs truncate">
+                                  {test.description}
+                                </div>
+                              )}
+                            </div>
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-2">
+                            <ModuleTypeBadge
+                              moduleType={
+                                test.module_type as keyof typeof MODULE_TYPE_LABELS
+                              }
+                            />
+                            <div className="flex items-center gap-1 text-sm">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              {test.time_limit} menit
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <FileText className="h-3 w-3 text-muted-foreground" />
+                            {test.total_questions || 0} soal
+                          </div>
+                          {test.passing_score && (
+                            <div className="text-xs text-muted-foreground">
+                              Passing: {test.passing_score}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={test.status || "active"} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1 text-sm">
+                            <div>{formatDate(test.created_at as any)}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Buka menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Aksi Tes</DropdownMenuLabel>
+                              <Link href={`/admin/tests/${test.id}`}>
+                                <DropdownMenuItem>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Lihat Detail
+                                </DropdownMenuItem>
+                              </Link>
+                              <Link
+                                href={`/admin/tests/edit?testId=${test.id}`}
+                              >
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Tes
+                                </DropdownMenuItem>
+                              </Link>
+                              <DropdownMenuItem>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Duplikasi
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <Link href={`/admin/tests/${test.id}/questions`}>
+                                <DropdownMenuItem>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  Kelola Pertanyaan
+                                </DropdownMenuItem>
+                              </Link>
+                              <DropdownMenuItem>
+                                <BarChart3 className="mr-2 h-4 w-4" />
+                                Lihat Statistik
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() =>
+                                  handleDeleteTest(test.id, test.name)
+                                }
+                                disabled={deleteTestMutation.isPending}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {deleteTestMutation.isPending
+                                  ? "Menghapus..."
+                                  : "Hapus Tes"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {/* Pagination */}
           {meta && meta.total_pages > 1 && (
