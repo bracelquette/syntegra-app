@@ -3,6 +3,8 @@ import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 import { validateEnv, type CloudflareBindings } from "@/lib/env";
 
+let sql: ReturnType<typeof neon> | null = null;
+
 // Function to create database connection for Cloudflare Workers
 export function createDatabase(databaseUrl: string) {
   if (!databaseUrl || databaseUrl.trim() === "") {
@@ -10,7 +12,11 @@ export function createDatabase(databaseUrl: string) {
       "DATABASE_URL is required but not provided. Please configure your database connection string."
     );
   }
-  const sql = neon(databaseUrl);
+
+  if (!sql) {
+    sql = neon(databaseUrl);
+  }
+
   return drizzle(sql, { schema });
 }
 
