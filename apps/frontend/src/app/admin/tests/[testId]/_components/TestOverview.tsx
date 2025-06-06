@@ -383,7 +383,7 @@ export function TestOverview({ test }: TestOverviewProps) {
             <CardContent className="text-blue-800 text-sm space-y-2">
               <div>
                 <h4 className="font-semibold mb-1">Icon yang Disarankan:</h4>
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-3 space-y-1">
                   <div>🧠 Intelligence</div>
                   <div>💭 Personality</div>
                   <div>🎯 Aptitude</div>
