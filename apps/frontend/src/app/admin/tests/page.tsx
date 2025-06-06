@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -12,192 +10,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
   Plus,
-  Search,
-  Filter,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Copy,
-  Eye,
-  Clock,
-  Users,
-  Brain,
-  Target,
-  BookOpen,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
   Settings,
-  BarChart3,
-  AlertCircle,
-  Loader2,
   RefreshCw,
+  Copy,
+  BarChart3,
+  Brain,
 } from "lucide-react";
 import Link from "next/link";
 import { useTests } from "@/hooks/useTests";
 import { toast } from "sonner";
 
-// Module type labels mapping
-const MODULE_TYPE_LABELS = {
-  intelligence: "Inteligensi",
-  personality: "Kepribadian",
-  aptitude: "Bakat",
-  interest: "Minat",
-  projective: "Proyektif",
-  cognitive: "Kognitif",
-} as const;
-
-// Category labels mapping
-const CATEGORY_LABELS = {
-  wais: "WAIS",
-  mbti: "MBTI",
-  wartegg: "Wartegg",
-  riasec: "RIASEC",
-  kraepelin: "Kraepelin",
-  pauli: "Pauli",
-  big_five: "Big Five",
-  papi_kostick: "PAPI Kostick",
-  dap: "DAP",
-  raven: "Raven",
-  epps: "EPPS",
-  army_alpha: "Army Alpha",
-  htp: "HTP",
-  disc: "DISC",
-  iq: "IQ Test",
-  eq: "EQ Test",
-} as const;
-
-// Status badge component
-const StatusBadge = ({
-  status,
-}: {
-  status: "active" | "inactive" | "archived";
-}) => {
-  const variants = {
-    active: "bg-green-100 text-green-700 hover:bg-green-200",
-    inactive: "bg-red-100 text-red-700 hover:bg-red-200",
-    archived: "bg-gray-100 text-gray-700 hover:bg-gray-200",
-  };
-
-  const labels = {
-    active: "Aktif",
-    inactive: "Tidak Aktif",
-    archived: "Diarsipkan",
-  };
-
-  return (
-    <Badge className={variants[status]} variant="secondary">
-      {labels[status]}
-    </Badge>
-  );
-};
-
-// Module type badge component
-const ModuleTypeBadge = ({
-  moduleType,
-}: {
-  moduleType: keyof typeof MODULE_TYPE_LABELS;
-}) => {
-  const variants = {
-    intelligence: "bg-cyan-100 text-cyan-700",
-    personality: "bg-pink-100 text-pink-700",
-    aptitude: "bg-emerald-100 text-emerald-700",
-    interest: "bg-amber-100 text-amber-700",
-    projective: "bg-purple-100 text-purple-700",
-    cognitive: "bg-indigo-100 text-indigo-700",
-  };
-
-  return (
-    <Badge className={variants[moduleType]} variant="secondary">
-      {MODULE_TYPE_LABELS[moduleType]}
-    </Badge>
-  );
-};
-
-// Category badge component
-const CategoryBadge = ({
-  category,
-}: {
-  category: keyof typeof CATEGORY_LABELS;
-}) => {
-  return (
-    <Badge variant="outline" className="text-xs">
-      {CATEGORY_LABELS[category]}
-    </Badge>
-  );
-};
-
-// Skeleton component for statistics cards
-const StatCardSkeleton = () => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <Skeleton className="h-4 w-20" />
-      <Skeleton className="h-4 w-4" />
-    </CardHeader>
-    <CardContent>
-      <Skeleton className="h-8 w-16 mb-2" />
-      <Skeleton className="h-3 w-24" />
-    </CardContent>
-  </Card>
-);
-
-// Skeleton component for filter card
-const FilterCardSkeleton = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Filter className="h-5 w-5" />
-        Filter & Pencarian
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="flex flex-col gap-4 md:flex-row md:items-end">
-        <div className="flex-1">
-          <Skeleton className="h-4 w-16 mb-2" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="w-full md:w-48">
-          <Skeleton className="h-4 w-20 mb-2" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="w-full md:w-48">
-          <Skeleton className="h-4 w-16 mb-2" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="w-full md:w-48">
-          <Skeleton className="h-4 w-12 mb-2" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+// Import components
+import CardAnalyticsTest from "./_components/CardAnalyticsTest";
+import FilterTest from "./_components/FilterTest";
+import TableTest from "./_components/TableTest";
 
 export default function AdminTestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -242,13 +69,28 @@ export default function AdminTestsPage() {
     setCurrentPage(1);
   };
 
-  // Format tanggal
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    handleFilterChange();
+  };
+
+  // Handle module type filter change
+  const handleModuleTypeChange = (value: string) => {
+    setModuleTypeFilter(value);
+    handleFilterChange();
+  };
+
+  // Handle category filter change
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    handleFilterChange();
+  };
+
+  // Handle status filter change
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    handleFilterChange();
   };
 
   // Handle delete test
@@ -312,430 +154,39 @@ export default function AdminTestsPage() {
         </div>
       </div>
 
-      {/* Statistik Singkat */}
-      <div className="grid gap-4 md:grid-cols-4">
-        {statsQuery.isLoading ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
-        ) : statsQuery.error ? (
-          <div className="col-span-4 flex items-center justify-center p-8">
-            <div className="text-center">
-              <AlertCircle className="size-8 text-red-500 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Gagal memuat statistik
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Tes</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats?.total_tests || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Tersedia dalam sistem
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tes Aktif</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {stats?.active_tests || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Siap digunakan</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Tidak Aktif
-                </CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {stats?.inactive_tests || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Tidak digunakan</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Rata-rata Durasi
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {Math.round(stats?.avg_time_limit || 0)} min
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Waktu pengerjaan
-                </p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+      {/* Analytics Cards */}
+      <CardAnalyticsTest
+        stats={stats}
+        isLoading={statsQuery.isLoading}
+        error={statsQuery.error}
+      />
 
-      {/* Filter dan Pencarian */}
-      {filterOptionsQuery.isLoading ? (
-        <FilterCardSkeleton />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filter & Pencarian
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4 md:flex-row md:items-end">
-              <div className="flex-1">
-                <Label htmlFor="search">Cari Tes</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Cari nama tes, deskripsi..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      handleFilterChange();
-                    }}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+      {/* Filter Section */}
+      <FilterTest
+        searchTerm={searchTerm}
+        moduleTypeFilter={moduleTypeFilter}
+        categoryFilter={categoryFilter}
+        statusFilter={statusFilter}
+        onSearchChange={handleSearchChange}
+        onModuleTypeChange={handleModuleTypeChange}
+        onCategoryChange={handleCategoryChange}
+        onStatusChange={handleStatusChange}
+        filterOptions={filterOptionsQuery.data?.data}
+        isLoading={filterOptionsQuery.isLoading}
+      />
 
-              <div className="w-full md:w-48">
-                <Label>Tipe Modul</Label>
-                <Select
-                  value={moduleTypeFilter}
-                  onValueChange={(value) => {
-                    setModuleTypeFilter(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih Tipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Tipe</SelectItem>
-                    {filterOptionsQuery.data?.data.module_types.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-full md:w-48">
-                <Label>Kategori</Label>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(value) => {
-                    setCategoryFilter(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Kategori</SelectItem>
-                    {filterOptionsQuery.data?.data.categories.map(
-                      (category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-full md:w-48">
-                <Label>Status</Label>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    {filterOptionsQuery.data?.data.statuses.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Tabel Tests */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Tes Psikotes</CardTitle>
-          <CardDescription>
-            {meta
-              ? `Menampilkan ${tests.length} dari ${meta.total} tes`
-              : "Memuat data..."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {testsQuery.error ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <AlertCircle className="size-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-red-600 mb-2">
-                  Gagal Memuat Data
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {testsQuery.error.message ||
-                    "Terjadi kesalahan saat memuat data tes"}
-                </p>
-                <Button onClick={() => testsQuery.refetch()} variant="outline">
-                  <RefreshCw className="size-4 mr-2" />
-                  Coba Lagi
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama & Kategori</TableHead>
-                    <TableHead>Tipe & Durasi</TableHead>
-                    <TableHead>Pertanyaan</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {testsQuery.isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="size-4 animate-spin" />
-                          Memuat data...
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : tests.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="text-muted-foreground">
-                          Tidak ada tes yang ditemukan
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    tests.map((test) => (
-                      <TableRow key={test.id}>
-                        <TableCell>
-                          <Link href={`/admin/tests/${test.id}`}>
-                            <div className="space-y-2">
-                              <div className="font-medium hover:underline cursor-pointer">
-                                {test.name}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <CategoryBadge
-                                  category={
-                                    test.category as keyof typeof CATEGORY_LABELS
-                                  }
-                                />
-                              </div>
-                              {test.description && (
-                                <div className="text-sm text-muted-foreground max-w-xs truncate">
-                                  {test.description}
-                                </div>
-                              )}
-                            </div>
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-2">
-                            <ModuleTypeBadge
-                              moduleType={
-                                test.module_type as keyof typeof MODULE_TYPE_LABELS
-                              }
-                            />
-                            <div className="flex items-center gap-1 text-sm">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              {test.time_limit} menit
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <FileText className="h-3 w-3 text-muted-foreground" />
-                            {test.total_questions || 0} soal
-                          </div>
-                          {test.passing_score && (
-                            <div className="text-xs text-muted-foreground">
-                              Passing: {test.passing_score}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={test.status || "active"} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1 text-sm">
-                            <div>{formatDate(test.created_at as any)}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Buka menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Aksi Tes</DropdownMenuLabel>
-                              <Link href={`/admin/tests/${test.id}`}>
-                                <DropdownMenuItem>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Lihat Detail
-                                </DropdownMenuItem>
-                              </Link>
-                              <Link
-                                href={`/admin/tests/edit?testId=${test.id}`}
-                              >
-                                <DropdownMenuItem>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Tes
-                                </DropdownMenuItem>
-                              </Link>
-                              <DropdownMenuItem>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplikasi
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <Link href={`/admin/tests/${test.id}/questions`}>
-                                <DropdownMenuItem>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Kelola Pertanyaan
-                                </DropdownMenuItem>
-                              </Link>
-                              <DropdownMenuItem>
-                                <BarChart3 className="mr-2 h-4 w-4" />
-                                Lihat Statistik
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() =>
-                                  handleDeleteTest(test.id, test.name)
-                                }
-                                disabled={deleteTestMutation.isPending}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {deleteTestMutation.isPending
-                                  ? "Menghapus..."
-                                  : "Hapus Tes"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {meta && meta.total_pages > 1 && (
-            <div className="flex items-center justify-between px-2 py-4">
-              <div className="text-sm text-muted-foreground">
-                Menampilkan {(meta.current_page - 1) * meta.per_page + 1} hingga{" "}
-                {Math.min(meta.current_page * meta.per_page, meta.total)} dari{" "}
-                {meta.total} tes
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={!meta.has_prev_page}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Sebelumnya
-                </Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from(
-                    { length: Math.min(5, meta.total_pages) },
-                    (_, i) => {
-                      let page;
-                      if (meta.total_pages <= 5) {
-                        page = i + 1;
-                      } else if (currentPage <= 3) {
-                        page = i + 1;
-                      } else if (currentPage >= meta.total_pages - 2) {
-                        page = meta.total_pages - 4 + i;
-                      } else {
-                        page = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    }
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={!meta.has_next_page}
-                >
-                  Berikutnya
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Table Section */}
+      <TableTest
+        tests={tests}
+        meta={meta}
+        isLoading={testsQuery.isLoading}
+        error={testsQuery.error}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        onRefetch={() => testsQuery.refetch()}
+        onDeleteTest={handleDeleteTest}
+        isDeleting={deleteTestMutation.isPending}
+      />
 
       {/* Quick Actions Section */}
       <div className="grid gap-4 md:grid-cols-3">
