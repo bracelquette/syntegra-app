@@ -1,28 +1,21 @@
-// apps/frontend/src/app/admin/tests/[testId]/components/TestOverview.tsx
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import {
   Clock,
   FileText,
   Target,
   Calendar,
-  User,
   Info,
   BookOpen,
-  Users,
   BarChart3,
-  Settings,
   CheckCircle,
-  AlertCircle,
-  Timer,
-  Hash,
-  Layers,
   Award,
+  Eye,
 } from "lucide-react";
+import CardTestModule from "@/components/card/card-test-module";
 
 // Module type labels mapping
 const MODULE_TYPE_LABELS = {
@@ -243,17 +236,6 @@ export function TestOverview({ test }: TestOverviewProps) {
                   </label>
                   <p className="text-sm">{test.display_order || 0}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Icon & Warna
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {test.icon && <span className="text-lg">{test.icon}</span>}
-                    <span className="text-sm">
-                      {test.card_color || "Default"}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {test.description && (
@@ -287,6 +269,24 @@ export function TestOverview({ test }: TestOverviewProps) {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Card Preview Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Preview Card Peserta
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Bagaimana tes ini akan terlihat pada dashboard peserta
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center py-4">
+                <CardTestModule test={test} />
+              </div>
             </CardContent>
           </Card>
 
@@ -368,6 +368,36 @@ export function TestOverview({ test }: TestOverviewProps) {
                   Terakhir Diperbarui
                 </label>
                 <p className="text-sm">{formatDate(test.updated_at)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Design Guide */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <Info className="h-5 w-5" />
+                Tips Desain Card
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-blue-800 text-sm space-y-2">
+              <div>
+                <h4 className="font-semibold mb-1">Icon yang Disarankan:</h4>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>🧠 Intelligence</div>
+                  <div>💭 Personality</div>
+                  <div>🎯 Aptitude</div>
+                  <div>❤️ Interest</div>
+                  <div>🎨 Projective</div>
+                  <div>⚡ Cognitive</div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1">Konsistensi Warna:</h4>
+                <p className="text-xs">
+                  Gunakan warna yang konsisten untuk setiap kategori tes agar
+                  mudah dikenali peserta
+                </p>
               </div>
             </CardContent>
           </Card>
