@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 
-// Define the API response types based on actual response
+// Admin Dashboard Types (existing)
 export interface DashboardOverview {
   total_users: number;
   total_participants: number;
@@ -45,10 +45,62 @@ export interface GetAdminDashboardResponse {
   timestamp: string;
 }
 
+// Participant Dashboard Types (new)
+export interface ParticipantUser {
+  id: string;
+  name: string;
+  email: string;
+  nik: string;
+  last_login: string | null;
+}
+
+export interface TestSummary {
+  total_attempts: number;
+  completed_tests: number;
+  in_progress_tests: number;
+  total_time_spent_minutes: number;
+  average_time_per_test_minutes: number;
+}
+
+export interface SessionSummary {
+  total_sessions: number;
+  upcoming_sessions: number;
+  active_sessions: number;
+}
+
+export interface RecentTest {
+  test_name: string;
+  category: string;
+  completed_at: string;
+  time_spent_minutes: number;
+}
+
+export interface UpcomingSession {
+  session_name: string;
+  session_code: string;
+  start_time: string;
+  end_time: string;
+  can_access: boolean;
+}
+
+export interface GetParticipantDashboardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: ParticipantUser;
+    test_summary: TestSummary;
+    session_summary: SessionSummary;
+    recent_tests: RecentTest[];
+    tests_by_category: Record<string, number>;
+    upcoming_sessions: UpcomingSession[];
+  };
+  timestamp: string;
+}
+
 export function useDashboard() {
   const { apiCall } = useApi();
 
-  // Get admin dashboard data (no parameters - simple API call)
+  // Get admin dashboard data (existing)
   const useGetAdminDashboard = () => {
     return useQuery({
       queryKey: ["dashboard", "admin"],
@@ -58,7 +110,21 @@ export function useDashboard() {
     });
   };
 
+  // Get participant dashboard data (new)
+  const useGetParticipantDashboard = () => {
+    return useQuery({
+      queryKey: ["dashboard", "participant"],
+      queryFn: () =>
+        apiCall<GetParticipantDashboardResponse>("/dashboard/participant"),
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      refetchInterval: 3 * 60 * 1000, // Auto refetch every 3 minutes
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    });
+  };
+
   return {
     useGetAdminDashboard,
+    useGetParticipantDashboard,
   };
 }

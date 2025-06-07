@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import { useDashboard } from "@/hooks/useDashboard";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   User,
   Calendar,
@@ -19,32 +21,48 @@ import {
   Mail,
   Phone,
   MapPin,
+  AlertCircle,
+  Play,
+  CheckCircle,
+  Timer,
+  BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 export default function ParticipantDashboardPage() {
-  const { user, isLoading } = useAuthContext();
+  const { user: authUser, isLoading: authLoading } = useAuthContext();
+  const { useGetParticipantDashboard } = useDashboard();
 
-  if (isLoading) {
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useGetParticipantDashboard();
+
+  // Loading state
+  if (authLoading || dashboardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Memuat dashboard...</p>
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Memuat dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!user) {
+  // Auth check
+  if (!authUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center space-y-4">
+          <AlertCircle className="size-12 text-muted-foreground mx-auto" />
           <p className="text-lg">Anda belum login</p>
-          <Button
-            onClick={() => (window.location.href = "/participant/login")}
-            className="mt-4"
-          >
+          <Button onClick={() => (window.location.href = "/participant/login")}>
             Login
           </Button>
         </div>
@@ -52,36 +70,91 @@ export default function ParticipantDashboardPage() {
     );
   }
 
-  const upcomingTests = [
-    {
-      id: "test-001",
-      name: "Tes Psikologi Komprehensif",
-      date: "2025-06-10",
-      time: "08:00 - 10:00",
-      location: "Ruang A1",
-      modules: ["WAIS", "MBTI", "Wartegg", "RIASEC"],
-      status: "upcoming",
-    },
-  ];
+  // Error state
+  if (dashboardError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <AlertCircle className="size-12 text-red-500 mx-auto" />
+          <div>
+            <p className="text-lg font-semibold">Gagal memuat dashboard</p>
+            <p className="text-muted-foreground">
+              Terjadi kesalahan saat mengambil data dashboard
+            </p>
+          </div>
+          <Button onClick={() => refetchDashboard()}>
+            <RefreshCw className="size-4 mr-2" />
+            Coba Lagi
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const completedTests = [
-    {
-      id: "test-002",
-      name: "Tes Kepribadian",
-      date: "2025-05-15",
-      score: "85%",
-      status: "completed",
-    },
-  ];
+  // Extract data
+  const data = dashboardData?.data;
+  const user = data?.user || authUser;
+  const testSummary = data?.test_summary;
+  const sessionSummary = data?.session_summary;
+  const recentTests = data?.recent_tests || [];
+  const upcomingSessions = data?.upcoming_sessions || [];
+  const testsByCategory = data?.tests_by_category || {};
+
+  // Helper function to format date
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Tidak diketahui";
+    try {
+      return format(new Date(dateString), "dd MMM yyyy", { locale: id });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return "Tidak diketahui";
+    try {
+      return format(new Date(dateString), "HH:mm", { locale: id });
+    } catch {
+      return dateString;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard Peserta</h1>
-            <p className="text-muted-foreground">Selamat datang, {user.name}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Dashboard Peserta</h1>
+              <p className="text-muted-foreground">
+                Selamat datang, {user.name}
+              </p>
+            </div>
+            <div className="flex flex-col justify-end gap-2 items-end">
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchDashboard()}
+                  disabled={dashboardLoading}
+                >
+                  <RefreshCw
+                    className={`size-4 mr-2 ${
+                      dashboardLoading ? "animate-spin" : ""
+                    }`}
+                  />
+                  Refresh
+                </Button>
+              </div>
+              {user.last_login && (
+                <p className="text-xs text-muted-foreground">
+                  Login terakhir: {formatDate(user.last_login.toString())} pada{" "}
+                  {formatTime(user.last_login.toString())}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -107,27 +180,34 @@ export default function ParticipantDashboardPage() {
                 <div className="text-center">
                   <h3 className="font-semibold text-lg">{user.name}</h3>
                   <Badge variant="secondary" className="mt-1">
-                    {user.role === "participant" ? "Peserta" : "Admin"}
+                    Peserta
                   </Badge>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="size-4 text-muted-foreground" />
-                    <span>{user.email}</span>
+                    <span className="break-all">{user.email}</span>
                   </div>
 
-                  {user.phone && (
+                  {user.nik && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Phone className="size-4 text-muted-foreground" />
-                      <span>{user.phone}</span>
+                      <User className="size-4 text-muted-foreground" />
+                      <span>NIK: {user.nik}</span>
                     </div>
                   )}
 
-                  {user.address && (
+                  {authUser.phone && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="size-4 text-muted-foreground" />
+                      <span>{authUser.phone}</span>
+                    </div>
+                  )}
+
+                  {authUser.address && (
                     <div className="flex items-center gap-3 text-sm">
                       <MapPin className="size-4 text-muted-foreground" />
-                      <span className="line-clamp-2">{user.address}</span>
+                      <span className="line-clamp-2">{authUser.address}</span>
                     </div>
                   )}
                 </div>
@@ -145,24 +225,57 @@ export default function ParticipantDashboardPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Test Categories Summary */}
+            {Object.keys(testsByCategory).length > 0 && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="size-5" />
+                    Tes per Kategori
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Object.entries(testsByCategory).map(
+                      ([category, count]) => (
+                        <div
+                          key={category}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="text-sm capitalize">
+                            {category.replace(/_/g, " ")}
+                          </span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Calendar className="size-6 text-blue-600" />
-                    </div>
-                    <div>
+                <CardContent className="px-6 h-full">
+                  <div className="flex flex-col justify-between items-start h-full">
+                    <div className="mb-8">
+                      <div className="flex mb-2">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Calendar className="size-6 text-blue-600" />
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground">
-                        Tes Mendatang
+                        Sesi Mendatang
                       </p>
+                    </div>
+                    <div className="mt-auto">
                       <p className="text-2xl font-bold">
-                        {upcomingTests.length}
+                        {sessionSummary?.upcoming_sessions || 0}
                       </p>
                     </div>
                   </div>
@@ -170,17 +283,21 @@ export default function ParticipantDashboardPage() {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Trophy className="size-6 text-green-600" />
-                    </div>
-                    <div>
+                <CardContent className="px-6 h-full">
+                  <div className="flex flex-col justify-between items-start h-full">
+                    <div className="mb-6">
+                      <div className="flex mb-2">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <CheckCircle className="size-6 text-green-600" />
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         Tes Selesai
                       </p>
+                    </div>
+                    <div className="mt-auto">
                       <p className="text-2xl font-bold">
-                        {completedTests.length}
+                        {testSummary?.completed_tests || 0}
                       </p>
                     </div>
                   </div>
@@ -188,77 +305,106 @@ export default function ParticipantDashboardPage() {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <Clock className="size-6 text-orange-600" />
+                <CardContent className="px-6 h-full">
+                  <div className="flex flex-col justify-between items-start h-full">
+                    <div className="mb-6">
+                      <div className="flex mb-2">
+                        <div className="p-2 bg-orange-100 rounded-lg">
+                          <Play className="size-6 text-orange-600" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Tes Berlangsung
+                      </p>
                     </div>
-                    <div>
+                    <div className="mt-auto">
+                      <p className="text-2xl font-bold">
+                        {testSummary?.in_progress_tests || 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="px-6 h-full">
+                  <div className="flex flex-col justify-between items-start h-full">
+                    <div className="mb-6">
+                      <div className="flex mb-2">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Timer className="size-6 text-purple-600" />
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         Total Waktu
                       </p>
-                      <p className="text-2xl font-bold">100 Menit</p>
+                    </div>
+                    <div className="mt-auto">
+                      <p className="text-2xl font-bold">
+                        {testSummary?.total_time_spent_minutes || 0}m
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Upcoming Tests */}
+            {/* Upcoming Sessions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="size-5" />
-                  Tes Mendatang
+                  Sesi Mendatang
                 </CardTitle>
                 <CardDescription>
                   Jadwal psikotes yang akan datang
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {upcomingTests.length > 0 ? (
+                {upcomingSessions.length > 0 ? (
                   <div className="space-y-4">
-                    {upcomingTests.map((test) => (
-                      <div key={test.id} className="border rounded-lg p-4">
+                    {upcomingSessions.map((session, index) => (
+                      <div key={index} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
-                            <h4 className="font-semibold">{test.name}</h4>
+                            <h4 className="font-semibold">
+                              {session.session_name}
+                            </h4>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Calendar className="size-4" />
-                                {test.date}
+                                {formatDate(session.start_time)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="size-4" />
-                                {test.time}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="size-4" />
-                                {test.location}
+                                {formatTime(session.start_time)} -{" "}
+                                {formatTime(session.end_time)}
                               </span>
                             </div>
-                            <div className="flex gap-2">
-                              {test.modules.map((module) => (
-                                <Badge
-                                  key={module}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {module}
-                                </Badge>
-                              ))}
-                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              Kode: {session.session_code}
+                            </Badge>
                           </div>
                           <Button
                             size="sm"
+                            disabled={!session.can_access}
                             onClick={() => {
-                              toast.info("Akses Tes", {
-                                description:
-                                  "Tes akan dapat diakses pada tanggal yang ditentukan",
-                              });
+                              if (session.can_access) {
+                                toast.success("Akses Tes", {
+                                  description: "Mengarahkan ke halaman tes...",
+                                });
+                                // Navigate to test
+                              } else {
+                                toast.info("Akses Tes", {
+                                  description:
+                                    "Tes akan dapat diakses 30 menit sebelum waktu mulai",
+                                });
+                              }
                             }}
                           >
-                            Lihat Detail
+                            {session.can_access
+                              ? "Mulai Tes"
+                              : "Belum Bisa Akses"}
                           </Button>
                         </div>
                       </div>
@@ -268,53 +414,61 @@ export default function ParticipantDashboardPage() {
                   <div className="text-center py-8">
                     <BookOpen className="size-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">
-                      Tidak ada tes yang dijadwalkan
+                      Tidak ada sesi yang dijadwalkan
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Hubungi administrator untuk informasi jadwal tes
                     </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Test History */}
+            {/* Recent Tests */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="size-5" />
-                  Riwayat Tes
+                  Tes Terbaru
                 </CardTitle>
                 <CardDescription>
-                  Hasil psikotes yang telah diselesaikan
+                  Riwayat psikotes yang baru saja diselesaikan
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {completedTests.length > 0 ? (
+                {recentTests.length > 0 ? (
                   <div className="space-y-4">
-                    {completedTests.map((test) => (
-                      <div key={test.id} className="border rounded-lg p-4">
+                    {recentTests.map((test, index) => (
+                      <div key={index} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold">{test.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {test.date}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant="secondary">
-                              Skor: {test.score}
+                          <div className="space-y-1">
+                            <h4 className="font-semibold">{test.test_name}</h4>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="size-4" />
+                                {formatDate(test.completed_at)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="size-4" />
+                                {test.time_spent_minutes} menit
+                              </span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {test.category.toUpperCase()}
                             </Badge>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                toast.info("Lihat Hasil", {
-                                  description:
-                                    "Fitur detail hasil akan segera tersedia",
-                                });
-                              }}
-                            >
-                              Lihat Hasil
-                            </Button>
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast.info("Lihat Hasil", {
+                                description:
+                                  "Fitur detail hasil akan segera tersedia",
+                              });
+                            }}
+                          >
+                            Lihat Hasil
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -325,10 +479,56 @@ export default function ParticipantDashboardPage() {
                     <p className="text-muted-foreground">
                       Belum ada tes yang diselesaikan
                     </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Tes yang telah selesai akan muncul di sini
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Test Summary Card */}
+            {testSummary && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="size-5" />
+                    Ringkasan Aktivitas
+                  </CardTitle>
+                  <CardDescription>
+                    Statistik keseluruhan aktivitas tes Anda
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">
+                        {testSummary.total_attempts}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Total Percobaan
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {testSummary.completed_tests}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Tes Selesai
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {testSummary.average_time_per_test_minutes}m
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Rata-rata Waktu
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
