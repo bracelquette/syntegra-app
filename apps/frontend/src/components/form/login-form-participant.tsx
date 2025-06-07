@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertCircle, Loader2, Eye, EyeOff, Info } from "lucide-react";
+import { AlertCircle, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,15 +18,11 @@ import { useAuth as useAuthContext } from "@/contexts/AuthContext";
 
 // PARTICIPANT LOGIN FORM (Updated)
 const participantLoginSchema = z.object({
-  nik: z
+  phone: z
     .string()
-    .min(1, "NIK tidak boleh kosong")
-    .length(16, "NIK harus 16 digit")
-    .regex(/^\d+$/, "NIK hanya boleh berisi angka"),
-  email: z
-    .string()
-    .min(1, "Email tidak boleh kosong")
-    .email("Format email tidak valid"),
+    .min(1, "Nomor telepon tidak boleh kosong")
+    .max(20, "Nomor telepon terlalu panjang")
+    .regex(/^[0-9+\-\s()]+$/, "Format nomor telepon tidak valid"),
   rememberMe: z.boolean(),
 });
 
@@ -36,7 +32,6 @@ export function LoginFormParticipant({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [showNIK, setShowNIK] = useState(false);
   const { useParticipantLogin } = useAuth();
   const { setTokenStorage } = useAuthContext();
 
@@ -53,8 +48,7 @@ export function LoginFormParticipant({
     resolver: zodResolver(participantLoginSchema),
     mode: "onChange",
     defaultValues: {
-      nik: "",
-      email: "",
+      phone: "",
       rememberMe: true, // Default to remember me
     },
   });
@@ -70,8 +64,7 @@ export function LoginFormParticipant({
 
       // Create participant login request
       const loginRequest = {
-        nik: data.nik,
-        email: data.email,
+        phone: data.phone.trim(),
       };
 
       await participantLoginMutation.mutateAsync(loginRequest);
@@ -84,31 +77,17 @@ export function LoginFormParticipant({
 
         if (
           errorMsg.includes("user not found") ||
-          errorMsg.includes("tidak ditemukan")
+          errorMsg.includes("tidak ditemukan") ||
+          errorMsg.includes("no participant found")
         ) {
-          // Try with email as identifier if NIK failed
-          try {
-            const emailLoginRequest = {
-              nik: data.nik,
-              email: data.email,
-            };
-            await participantLoginMutation.mutateAsync(emailLoginRequest);
-            return; // Success with email
-          } catch (emailError: any) {
-            // Both NIK and email failed
-            setError("nik", {
-              type: "manual",
-              message: "NIK atau email tidak terdaftar",
-            });
-            setError("email", {
-              type: "manual",
-              message: "NIK atau email tidak terdaftar",
-            });
+          setError("phone", {
+            type: "manual",
+            message: "Nomor telepon tidak terdaftar",
+          });
 
-            toast.error("Login gagal", {
-              description: "NIK atau email tidak ditemukan dalam sistem",
-            });
-          }
+          toast.error("Login gagal", {
+            description: "Nomor telepon tidak ditemukan dalam sistem",
+          });
         } else if (
           errorMsg.includes("account") &&
           errorMsg.includes("locked")
@@ -124,13 +103,8 @@ export function LoginFormParticipant({
           toast.error("Akun Nonaktif", {
             description: "Akun Anda tidak aktif. Hubungi admin untuk aktivasi.",
           });
-        } else if (errorMsg.includes("nik")) {
-          setError("nik", {
-            type: "manual",
-            message: error.message,
-          });
-        } else if (errorMsg.includes("email")) {
-          setError("email", {
+        } else if (errorMsg.includes("phone")) {
+          setError("phone", {
             type: "manual",
             message: error.message,
           });
@@ -202,66 +176,30 @@ export function LoginFormParticipant({
           )}
 
           <div className="flex flex-col gap-4">
-            {/* NIK Field */}
+            {/* Phone Field */}
             <div className="grid gap-2">
-              <Label htmlFor="nik" className="text-sm font-medium">
-                Nomor Induk Kependudukan (NIK)
-              </Label>
-              <div className="relative">
-                <Input
-                  id="nik"
-                  type={showNIK ? "text" : "password"}
-                  placeholder="1234567890123456"
-                  disabled={isLoading}
-                  {...register("nik")}
-                  className={cn(
-                    "pr-10",
-                    errors.nik && "border-red-500 focus-visible:ring-red-500"
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNIK(!showNIK)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  disabled={isLoading}
-                  tabIndex={-1}
-                >
-                  {showNIK ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                </button>
-              </div>
-              {errors.nik && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  {errors.nik.message}
-                </p>
-              )}
-            </div>
-
-            {/* Email Field */}
-            <div className="grid gap-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Nomor Telepon
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="contoh@email.com"
+                id="phone"
+                type="tel"
+                placeholder="08123456789 atau +628123456789"
                 disabled={isLoading}
-                {...register("email")}
+                {...register("phone")}
                 className={cn(
-                  errors.email && "border-red-500 focus-visible:ring-red-500"
+                  errors.phone && "border-red-500 focus-visible:ring-red-500"
                 )}
               />
-              {errors.email && (
+              {errors.phone && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="size-3" />
-                  {errors.email.message}
+                  {errors.phone.message}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Masukkan nomor telepon yang terdaftar di sistem
+              </p>
             </div>
 
             {/* Remember Me Checkbox */}

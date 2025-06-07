@@ -10,11 +10,11 @@ export const AdminLoginRequestSchema = z.object({
 
 // Participant Login Request (tanpa password)
 export const ParticipantLoginRequestSchema = z.object({
-  nik: z
+  phone: z
     .string()
-    .min(16, "NIK must be exactly 16 characters")
-    .max(16, "NIK must be exactly 16 characters"),
-  email: z.string().email("Invalid email format"),
+    .min(1, "Phone number is required")
+    .max(20, "Phone number is too long")
+    .regex(/^[0-9+\-\s()]+$/, "Phone number contains invalid characters"),
 });
 
 // Refresh Token Request

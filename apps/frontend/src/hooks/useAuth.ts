@@ -27,8 +27,7 @@ export function useAuth() {
           {
             method: "POST",
             body: JSON.stringify({
-              nik: data.nik,
-              email: data.email,
+              phone: data.phone,
             }),
           }
         );

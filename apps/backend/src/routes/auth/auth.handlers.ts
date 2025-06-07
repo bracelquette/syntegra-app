@@ -304,16 +304,29 @@ export async function participantLoginHandler(
       throw new Error("JWT_SECRET not configured");
     }
 
-    // Find participant by NIK and email
+    // Validate phone number format (basic validation)
+    if (!data.phone || !data.phone.trim()) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Phone number is required",
+        errors: [
+          {
+            field: "phone",
+            message: "Please provide a valid phone number",
+            code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+
+    // Find participant by phone number
     const [user] = await db
       .select()
       .from(users)
       .where(
-        and(
-          eq(users.nik, data.nik),
-          eq(users.email, data.email),
-          eq(users.role, "participant")
-        )
+        and(eq(users.phone, data.phone.trim()), eq(users.role, "participant"))
       )
       .limit(1);
 
@@ -324,7 +337,7 @@ export async function participantLoginHandler(
         errors: [
           {
             field: "credentials",
-            message: "No participant found with provided NIK and email",
+            message: "No participant found with provided phone number",
             code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
           },
         ],
