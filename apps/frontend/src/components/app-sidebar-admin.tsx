@@ -41,11 +41,6 @@ const data = {
       icon: Users,
     },
     {
-      title: "Laporan & Hasil",
-      url: "/admin/reports",
-      icon: FileText,
-    },
-    {
       title: "Modul Psikotes",
       url: "/admin/tests",
       icon: Brain,
@@ -55,7 +50,11 @@ const data = {
       url: "/admin/sessions",
       icon: Clock,
     },
-
+    {
+      title: "Laporan & Hasil",
+      url: "/admin/reports",
+      icon: FileText,
+    },
     {
       title: "Pengaturan Sistem",
       url: "/admin/settings",
