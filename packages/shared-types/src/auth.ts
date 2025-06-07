@@ -248,6 +248,7 @@ export type CreateAuthSessionDB = {
   token: string;
   refresh_token: string;
   expires_at: Date;
+  updated_at?: Date; // ADDED: Optional field (database has default)
   ip_address?: string;
   user_agent?: string;
   is_active: boolean;
