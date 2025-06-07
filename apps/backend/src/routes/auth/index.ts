@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { type CloudflareBindings } from "../../lib/env";
+import { type CloudflareBindings } from "@/lib/env";
 import {
   AdminLoginRequestSchema,
   ParticipantLoginRequestSchema,
@@ -8,6 +8,7 @@ import {
   ChangePasswordRequestSchema,
   LogoutRequestSchema,
   type ErrorResponse,
+  z,
 } from "shared-types";
 import {
   adminLoginHandler,
@@ -16,13 +17,16 @@ import {
   logoutHandler,
   getProfileHandler,
   changePasswordHandler,
+  getActiveSessionsHandler,
+  revokeSessionHandler,
+  revokeAllOtherSessionsHandler,
 } from "./auth.handlers";
-import { authenticateUser, requireAdmin } from "../../middleware/auth";
+import { authenticateUser, requireAdmin } from "@/middleware/auth";
 import {
   loginRateLimit,
   generalApiRateLimit,
   passwordChangeRateLimit,
-} from "../../middleware/rateLimiter";
+} from "@/middleware/rateLimiter";
 
 const authRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -31,7 +35,7 @@ const authRoutes = new Hono<{ Bindings: CloudflareBindings }>();
 // Admin Login Endpoint
 authRoutes.post(
   "/admin/login",
-  loginRateLimit, // 10 attempts per 15 minutes
+  loginRateLimit,
   zValidator("json", AdminLoginRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -53,7 +57,7 @@ authRoutes.post(
 // Participant Login Endpoint
 authRoutes.post(
   "/participant/login",
-  loginRateLimit, // 10 attempts per 15 minutes
+  loginRateLimit,
   zValidator("json", ParticipantLoginRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -75,7 +79,7 @@ authRoutes.post(
 // Refresh Token Endpoint
 authRoutes.post(
   "/refresh",
-  generalApiRateLimit, // General rate limiting
+  generalApiRateLimit,
   zValidator("json", RefreshTokenRequestSchema, (result, c) => {
     if (!result.success) {
       const errorResponse: ErrorResponse = {
@@ -97,17 +101,12 @@ authRoutes.post(
 // ==================== PROTECTED ROUTES (AUTH REQUIRED) ====================
 
 // Get Current User Profile
-authRoutes.get(
-  "/me",
-  generalApiRateLimit, // General rate limiting
-  authenticateUser,
-  getProfileHandler
-);
+authRoutes.get("/me", generalApiRateLimit, authenticateUser, getProfileHandler);
 
 // Logout (current session)
 authRoutes.post(
   "/logout",
-  generalApiRateLimit, // General rate limiting
+  generalApiRateLimit,
   authenticateUser,
   zValidator("json", LogoutRequestSchema.optional(), (result, c) => {
     if (!result.success) {
@@ -127,10 +126,57 @@ authRoutes.post(
   logoutHandler
 );
 
+// ==================== SESSION MANAGEMENT ROUTES ====================
+
+// Get Active Sessions
+authRoutes.get(
+  "/sessions",
+  generalApiRateLimit,
+  authenticateUser,
+  getActiveSessionsHandler
+);
+
+// Revoke Specific Session
+authRoutes.delete(
+  "/sessions/:sessionId",
+  generalApiRateLimit,
+  authenticateUser,
+  zValidator(
+    "param",
+    z.object({ sessionId: z.string().uuid() }),
+    (result, c) => {
+      if (!result.success) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          message: "Invalid session ID",
+          timestamp: new Date().toISOString(),
+        };
+        return c.json(errorResponse, 400);
+      }
+    }
+  ),
+  async (c) => {
+    // Extract sessionId from params and call handler
+    const { sessionId } = c.req.param();
+    (c.req as any).json = async () => ({ sessionId }); // Mock the json method
+    return revokeSessionHandler(c);
+  }
+);
+
+// Revoke All Other Sessions
+authRoutes.post(
+  "/sessions/revoke-others",
+  generalApiRateLimit,
+  authenticateUser,
+  revokeAllOtherSessionsHandler
+);
+
+// ==================== ADMIN ONLY ROUTES ====================
+
 // Change Password (Admin only)
 authRoutes.put(
   "/change-password",
-  passwordChangeRateLimit, // 3 changes per hour
+  passwordChangeRateLimit,
   authenticateUser,
   requireAdmin,
   zValidator("json", ChangePasswordRequestSchema, (result, c) => {
@@ -166,6 +212,15 @@ authRoutes.get("/health", (c) => {
       profile: "GET /auth/me",
       logout: "POST /auth/logout",
       change_password: "PUT /auth/change-password",
+      // Session management endpoints
+      get_sessions: "GET /auth/sessions",
+      revoke_session: "DELETE /auth/sessions/:sessionId",
+      revoke_other_sessions: "POST /auth/sessions/revoke-others",
+    },
+    features: {
+      session_management: true,
+      auto_refresh: true,
+      session_limits: true,
     },
     rate_limits: {
       login: "10 attempts per 15 minutes",

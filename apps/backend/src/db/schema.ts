@@ -175,6 +175,7 @@ export const authSessions = pgTable(
     refresh_token: text("refresh_token").notNull().unique(),
     expires_at: timestamp("expires_at").notNull(),
     created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").notNull(),
     last_used: timestamp("last_used").defaultNow().notNull(),
     ip_address: varchar("ip_address", { length: 45 }),
     user_agent: text("user_agent"),

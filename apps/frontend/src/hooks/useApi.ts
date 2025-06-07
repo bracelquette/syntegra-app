@@ -1,104 +1,105 @@
 "use client";
 
 import { useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = "https://backend.bracelquette.workers.dev/api/v1";
+
+interface ApiRequestOptions extends RequestInit {
+  skipAuthRefresh?: boolean; // Skip automatic token refresh for this request
+}
 
 export function useApi() {
+  const { refreshAuth, logout, getSessionInfo } = useAuth();
+
+  // Get tokens from current storage
+  const getTokens = useCallback(() => {
+    if (typeof window === "undefined")
+      return { accessToken: null, refreshToken: null };
+
+    // Try localStorage first, then sessionStorage
+    let accessToken =
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("access_token");
+    let refreshToken =
+      localStorage.getItem("refresh_token") ||
+      sessionStorage.getItem("refresh_token");
+
+    return { accessToken, refreshToken };
+  }, []);
+
   const apiCall = useCallback(
     async <T = any>(
       endpoint: string,
-      options: RequestInit = {}
+      options: ApiRequestOptions = {}
     ): Promise<T> => {
       const url = `${API_BASE_URL}${endpoint}`;
+      const { skipAuthRefresh = false, ...requestOptions } = options;
 
-      // Get token from localStorage
-      const accessToken =
-        typeof window !== "undefined"
-          ? localStorage.getItem("access_token")
-          : null;
+      // Get current tokens
+      let { accessToken } = getTokens();
 
+      // Check if token is expiring soon and refresh if needed
+      if (!skipAuthRefresh && accessToken) {
+        const sessionInfo = getSessionInfo();
+        if (
+          sessionInfo.isExpiringSoon &&
+          sessionInfo.timeUntilExpiry !== null &&
+          sessionInfo.timeUntilExpiry > 0
+        ) {
+          console.log("Token expiring soon, attempting refresh...");
+          const refreshed = await refreshAuth();
+          if (refreshed) {
+            // Get updated token
+            const updatedTokens = getTokens();
+            accessToken = updatedTokens.accessToken;
+          }
+        }
+      }
+
+      // Prepare headers
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        ...(options.headers as Record<string, string>),
+        ...(requestOptions.headers as Record<string, string>),
       };
 
       if (accessToken) {
         headers.Authorization = `Bearer ${accessToken}`;
       }
 
+      // Make the request
       let response = await fetch(url, {
-        ...options,
+        ...requestOptions,
         headers,
       });
 
-      // Handle token expiration
-      if (response.status === 401) {
+      // Handle 401 - Unauthorized (token expired or invalid)
+      if (response.status === 401 && !skipAuthRefresh) {
+        console.log("Received 401, attempting token refresh...");
+
         // Try to refresh token
-        const refreshToken =
-          typeof window !== "undefined"
-            ? localStorage.getItem("refresh_token")
-            : null;
+        const refreshed = await refreshAuth();
 
-        if (refreshToken) {
-          try {
-            const refreshResponse = await fetch(
-              `${API_BASE_URL}/auth/refresh`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ refresh_token: refreshToken }),
-              }
-            );
+        if (refreshed) {
+          // Retry the original request with new token
+          const { accessToken: newAccessToken } = getTokens();
 
-            if (refreshResponse.ok) {
-              const refreshResult = await refreshResponse.json();
-
-              // Update access token
-              if (typeof window !== "undefined") {
-                localStorage.setItem(
-                  "access_token",
-                  refreshResult.data.access_token
-                );
-              }
-
-              // Retry original request with new token
-              headers.Authorization = `Bearer ${refreshResult.data.access_token}`;
-              response = await fetch(url, { ...options, headers });
-            } else {
-              // Refresh failed, clear auth and redirect
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
-                localStorage.removeItem("user");
-                window.location.href = "/";
-              }
-              throw new Error("Authentication failed");
-            }
-          } catch (refreshError) {
-            // Refresh failed, clear auth and redirect
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("access_token");
-              localStorage.removeItem("refresh_token");
-              localStorage.removeItem("user");
-              window.location.href = "/";
-            }
-            throw new Error("Authentication failed");
+          if (newAccessToken) {
+            headers.Authorization = `Bearer ${newAccessToken}`;
+            response = await fetch(url, {
+              ...requestOptions,
+              headers,
+            });
           }
         } else {
-          // No refresh token, clear auth and redirect
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            localStorage.removeItem("user");
-            window.location.href = "/";
-          }
-          throw new Error("Authentication failed");
+          // Refresh failed, logout user
+          console.log("Token refresh failed, logging out...");
+          await logout();
+          throw new Error("Authentication failed - please login again");
         }
       }
 
+      // Handle non-200 responses
       if (!response.ok) {
         let errorData;
         try {
@@ -130,8 +131,44 @@ export function useApi() {
 
       return response.json();
     },
-    []
+    [refreshAuth, logout, getTokens, getSessionInfo]
   );
 
-  return { apiCall };
+  // Specialized method for authenticated requests
+  const authenticatedCall = useCallback(
+    async <T = any>(
+      endpoint: string,
+      options: ApiRequestOptions = {}
+    ): Promise<T> => {
+      const { accessToken } = getTokens();
+
+      if (!accessToken) {
+        throw new Error("No access token available - please login");
+      }
+
+      return apiCall<T>(endpoint, options);
+    },
+    [apiCall, getTokens]
+  );
+
+  // Specialized method for public requests (no auth required)
+  const publicCall = useCallback(
+    async <T = any>(
+      endpoint: string,
+      options: ApiRequestOptions = {}
+    ): Promise<T> => {
+      return apiCall<T>(endpoint, {
+        ...options,
+        skipAuthRefresh: true,
+      });
+    },
+    [apiCall]
+  );
+
+  return {
+    apiCall,
+    authenticatedCall,
+    publicCall,
+    getTokens,
+  };
 }

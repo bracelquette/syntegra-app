@@ -37,7 +37,9 @@ import {
   type AuthTokens,
   AUTH_CONSTANTS,
   AUTH_ERROR_CODES,
+  SessionManagementResponse,
 } from "shared-types";
+import { createSessionManager } from "@/lib/sessionManager";
 
 // ==================== ADMIN LOGIN ====================
 
@@ -770,6 +772,165 @@ export async function changePasswordHandler(
     const errorResponse: ErrorResponse = {
       success: false,
       message: "Failed to change password",
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(errorResponse, 500);
+  }
+}
+
+// ==================== NEW: SESSION MANAGEMENT HANDLERS ====================
+
+export async function getActiveSessionsHandler(
+  c: Context<{ Bindings: CloudflareBindings }>
+) {
+  try {
+    const auth = c.get("auth");
+    if (!auth) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Not authenticated",
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 401);
+    }
+
+    const db = getDbFromEnv(c.env);
+    const sessionManager = createSessionManager(db);
+
+    const activeSessions = await sessionManager.getUserActiveSessions(
+      auth.user.id
+    );
+
+    const sessionInfos = activeSessions.map((session) => ({
+      id: session.id,
+      ip_address: session.ip_address,
+      user_agent: session.user_agent,
+      created_at: session.created_at,
+      last_used: session.last_used,
+      expires_at: session.expires_at,
+      is_current: session.id === auth.sessionId,
+    }));
+
+    const response: SessionManagementResponse = {
+      success: true,
+      message: "Active sessions retrieved successfully",
+      data: {
+        active_sessions: sessionInfos,
+        total_sessions: sessionInfos.length,
+        current_session_id: auth.sessionId,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 200);
+  } catch (error) {
+    console.error("Get active sessions error:", error);
+
+    const errorResponse: ErrorResponse = {
+      success: false,
+      message: "Failed to retrieve active sessions",
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(errorResponse, 500);
+  }
+}
+
+export async function revokeSessionHandler(
+  c: Context<{ Bindings: CloudflareBindings }>
+) {
+  try {
+    const auth = c.get("auth");
+    if (!auth) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Not authenticated",
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 401);
+    }
+
+    const { sessionId } = await c.req.json();
+
+    if (!sessionId) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Session ID is required",
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+
+    const db = getDbFromEnv(c.env);
+    const sessionManager = createSessionManager(db);
+
+    const revoked = await sessionManager.revokeSession(sessionId, auth.user.id);
+
+    if (!revoked) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Session not found or already revoked",
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 404);
+    }
+
+    const response: AuthSuccessResponse = {
+      success: true,
+      message: "Session revoked successfully",
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 200);
+  } catch (error) {
+    console.error("Revoke session error:", error);
+
+    const errorResponse: ErrorResponse = {
+      success: false,
+      message: "Failed to revoke session",
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(errorResponse, 500);
+  }
+}
+
+export async function revokeAllOtherSessionsHandler(
+  c: Context<{ Bindings: CloudflareBindings }>
+) {
+  try {
+    const auth = c.get("auth");
+    if (!auth) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Not authenticated",
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 401);
+    }
+
+    const db = getDbFromEnv(c.env);
+    const sessionManager = createSessionManager(db);
+
+    const revokedCount = await sessionManager.revokeOtherUserSessions(
+      auth.user.id,
+      auth.sessionId
+    );
+
+    const response: AuthSuccessResponse = {
+      success: true,
+      message: `Successfully revoked ${revokedCount} other sessions`,
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 200);
+  } catch (error) {
+    console.error("Revoke all other sessions error:", error);
+
+    const errorResponse: ErrorResponse = {
+      success: false,
+      message: "Failed to revoke other sessions",
       timestamp: new Date().toISOString(),
     };
 

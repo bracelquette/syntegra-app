@@ -50,6 +50,13 @@
       "when": 1749062406376,
       "tag": "0006_high_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1749262754937,
+      "tag": "0007_mighty_skreet",
+      "breakpoints": true
     }
   ]
 }

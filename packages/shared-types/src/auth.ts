@@ -189,6 +189,29 @@ export const JWTPayloadSchema = z.object({
   exp: z.number(),
 });
 
+// Add new schema for session management
+export const SessionInfoSchema = z.object({
+  id: z.string().uuid(),
+  ip_address: z.string().nullable(),
+  user_agent: z.string().nullable(),
+  created_at: z.date(),
+  last_used: z.date(),
+  expires_at: z.date(),
+  is_current: z.boolean(),
+});
+
+// Add session management response
+export const SessionManagementResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  data: z.object({
+    active_sessions: z.array(SessionInfoSchema),
+    total_sessions: z.number(),
+    current_session_id: z.string().uuid(),
+  }),
+  timestamp: z.string(),
+});
+
 // ==================== TYPE EXPORTS ====================
 export type AdminLoginRequest = z.infer<typeof AdminLoginRequestSchema>;
 export type ParticipantLoginRequest = z.infer<
@@ -213,6 +236,10 @@ export type RefreshTokenResponse = z.infer<typeof RefreshTokenResponseSchema>;
 export type ProfileResponse = z.infer<typeof ProfileResponseSchema>;
 export type AuthSuccessResponse = z.infer<typeof AuthSuccessResponseSchema>;
 export type JWTPayload = z.infer<typeof JWTPayloadSchema>;
+export type SessionInfo = z.infer<typeof SessionInfoSchema>;
+export type SessionManagementResponse = z.infer<
+  typeof SessionManagementResponseSchema
+>;
 
 // ==================== DATABASE TYPES ====================
 export type CreateAuthSessionDB = {
@@ -234,12 +261,15 @@ export type AuthContext = {
 
 // ==================== CONSTANTS ====================
 export const AUTH_CONSTANTS = {
-  ACCESS_TOKEN_EXPIRES_IN: 15 * 60, // 15 minutes in seconds
+  ACCESS_TOKEN_EXPIRES_IN: 2 * 60 * 60, // 2 hours in seconds
   REFRESH_TOKEN_EXPIRES_IN: 7 * 24 * 60 * 60, // 7 days in seconds
+  AUTO_REFRESH_THRESHOLD: 30 * 60, // 30 minutes in seconds
   MAX_LOGIN_ATTEMPTS: 5,
   ACCOUNT_LOCKOUT_DURATION: 30 * 60, // 30 minutes in seconds
   PASSWORD_RESET_TOKEN_EXPIRES_IN: 60 * 60, // 1 hour in seconds
   EMAIL_VERIFICATION_TOKEN_EXPIRES_IN: 24 * 60 * 60, // 24 hours in seconds
+  MAX_ACTIVE_SESSIONS_PER_USER: 3, // Maximum 3 active sessions per user
+  SESSION_CLEANUP_INTERVAL: 24 * 60 * 60, // Cleanup every 24 hours
 } as const;
 
 // ==================== VALIDATION HELPERS ====================
