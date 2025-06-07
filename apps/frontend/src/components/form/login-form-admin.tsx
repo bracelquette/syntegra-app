@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuth as useAuthContext } from "@/contexts/AuthContext";
 
 // Form validation schema - sesuai dengan AdminLoginRequestSchema
 const adminLoginSchema = z.object({
@@ -26,6 +27,7 @@ const adminLoginSchema = z.object({
     .string()
     .min(1, "Password tidak boleh kosong")
     .min(8, "Password minimal 8 karakter"),
+  rememberMe: z.boolean(),
 });
 
 type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
@@ -36,6 +38,7 @@ export function LoginFormAdmin({
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
   const { useAdminLogin } = useAuth();
+  const { setTokenStorage } = useAuthContext();
 
   const adminLoginMutation = useAdminLogin();
 
@@ -52,6 +55,7 @@ export function LoginFormAdmin({
     defaultValues: {
       email: "admin-new@example.com",
       password: "AdminNew123!",
+      rememberMe: false,
     },
   });
 
@@ -70,6 +74,8 @@ export function LoginFormAdmin({
       const loadingToast = toast.loading("Memproses login...", {
         description: "Mohon tunggu, kami sedang memverifikasi kredensial Anda",
       });
+
+      setTokenStorage(data.rememberMe ? "localStorage" : "sessionStorage");
 
       // Call admin login mutation
       await adminLoginMutation.mutateAsync({
