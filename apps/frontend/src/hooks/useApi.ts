@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE_URL = "https://backend.bracelquette.workers.dev/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface ApiRequestOptions extends RequestInit {
   skipAuthRefresh?: boolean; // Skip automatic token refresh for this request
