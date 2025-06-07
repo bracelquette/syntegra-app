@@ -49,6 +49,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import type { UserData, GetUsersRequest } from "shared-types";
+import { useModalStore } from "@/stores/useModalStore";
 
 interface UsersResponse {
   data: UserData[];
@@ -81,6 +82,8 @@ export function TableUser({
   onPageChange,
   onEditUser,
 }: TableUserProps) {
+  const { openDeleteUserModal } = useModalStore();
+
   // Format age from birth_date
   const calculateAge = (birthDate: Date | null) => {
     if (!birthDate) return "-";
@@ -108,6 +111,10 @@ export function TableUser({
     if (rand < 0.75)
       return <Badge className="bg-yellow-100 text-yellow-800">Terjadwal</Badge>;
     return <Badge className="bg-gray-100 text-gray-800">Belum Test</Badge>;
+  };
+
+  const handleDeleteUser = (user: UserData) => {
+    openDeleteUserModal(user.id, user.name);
   };
 
   return (
@@ -245,7 +252,10 @@ export function TableUser({
                               Edit Peserta
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteUser(user)}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Hapus Peserta
                             </DropdownMenuItem>

@@ -4,13 +4,14 @@ import React, { useState, useMemo } from "react";
 import { Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUsers } from "@/hooks/useUsers";
-import type { UserData, GetUsersRequest } from "shared-types";
+import type { GetUsersRequest } from "shared-types";
 import { useModalStore } from "@/stores/useModalStore";
 import { CreateUserDialog } from "@/components/modals/CreateUserDialog";
 import { UpdateUserDialog } from "@/components/modals/UpdateUserDialog";
 import { CardAnalyticsUser } from "./_components/CardAnalyticsUser";
 import { FilterUser } from "./_components/FilterUser";
 import { TableUser } from "./_components/TableUser";
+import { DeleteUserDialog } from "./_components/DeleteUserDialog";
 
 export default function UsersManagementPage() {
   const { openCreateUserModal, openEditUserModal } = useModalStore();
@@ -107,6 +108,7 @@ export default function UsersManagementPage() {
       {/* Modals */}
       <CreateUserDialog />
       <UpdateUserDialog />
+      <DeleteUserDialog />
     </div>
   );
 }

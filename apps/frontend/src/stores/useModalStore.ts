@@ -1,6 +1,7 @@
+// apps/frontend/src/stores/useModalStore.ts
 import { create } from "zustand";
 
-interface ModalStore {
+interface ModalState {
   // Create User Modal
   isCreateUserModalOpen: boolean;
   openCreateUserModal: () => void;
@@ -12,14 +13,15 @@ interface ModalStore {
   openEditUserModal: (userId: string) => void;
   closeEditUserModal: () => void;
 
-  // Delete User Modal
+  // Delete User Modal (NEW)
   isDeleteUserModalOpen: boolean;
   deleteUserId: string | null;
-  openDeleteUserModal: (userId: string) => void;
+  deleteUserName: string | null;
+  openDeleteUserModal: (userId: string, userName: string) => void;
   closeDeleteUserModal: () => void;
 }
 
-export const useModalStore = create<ModalStore>((set) => ({
+export const useModalStore = create<ModalState>((set) => ({
   // Create User Modal
   isCreateUserModalOpen: false,
   openCreateUserModal: () => set({ isCreateUserModalOpen: true }),
@@ -28,16 +30,25 @@ export const useModalStore = create<ModalStore>((set) => ({
   // Edit User Modal
   isEditUserModalOpen: false,
   editUserId: null,
-  openEditUserModal: (userId) =>
+  openEditUserModal: (userId: string) =>
     set({ isEditUserModalOpen: true, editUserId: userId }),
   closeEditUserModal: () =>
     set({ isEditUserModalOpen: false, editUserId: null }),
 
-  // Delete User Modal
+  // Delete User Modal (NEW)
   isDeleteUserModalOpen: false,
   deleteUserId: null,
-  openDeleteUserModal: (userId) =>
-    set({ isDeleteUserModalOpen: true, deleteUserId: userId }),
+  deleteUserName: null,
+  openDeleteUserModal: (userId: string, userName: string) =>
+    set({
+      isDeleteUserModalOpen: true,
+      deleteUserId: userId,
+      deleteUserName: userName,
+    }),
   closeDeleteUserModal: () =>
-    set({ isDeleteUserModalOpen: false, deleteUserId: null }),
+    set({
+      isDeleteUserModalOpen: false,
+      deleteUserId: null,
+      deleteUserName: null,
+    }),
 }));
