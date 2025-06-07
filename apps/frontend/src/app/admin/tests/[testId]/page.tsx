@@ -206,12 +206,14 @@ export default function TestDetailPage() {
         </Link>
       </Button>
       <div className="flex items-center gap-3">
-        <Separator orientation="vertical" className="h-6" />
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-2xl font-bold">{test.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">
+                {test.description}
+              </p>
+              <div className="flex items-center gap-2 mt-4">
                 <Badge
                   className="bg-cyan-100 text-cyan-700"
                   variant="secondary"
@@ -230,6 +232,7 @@ export default function TestDetailPage() {
                   }
                 </Badge>
                 <StatusBadge status={test.status || "active"} />
+                <p className="text-sm text-muted-foreground">ID: {test.id}</p>
               </div>
             </div>
           </div>
@@ -248,18 +251,27 @@ export default function TestDetailPage() {
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="space-y-6"
+        className="space-y-6 mt-8"
       >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="bank-soal" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Bank Soal
-          </TabsTrigger>
-        </TabsList>
+        <div className="space-y-4">
+          <TabsList className="inline-flex">
+            <TabsTrigger
+              value="overview"
+              className="flex items-center gap-2 px-8"
+            >
+              <Settings className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="bank-soal"
+              className="flex items-center gap-2 px-8"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Bank Soal
+            </TabsTrigger>
+          </TabsList>
+          <div className="w-full border-b border-border"></div>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
           <TestOverview
