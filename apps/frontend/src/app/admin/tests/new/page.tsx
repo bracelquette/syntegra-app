@@ -103,7 +103,7 @@ export default function CreateTestPage() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-1 flex-col gap-4">
         <div className="space-y-6">
           {/* Header Section */}
           <div className="flex items-center gap-4">

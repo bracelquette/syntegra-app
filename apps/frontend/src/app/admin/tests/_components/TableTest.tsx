@@ -148,7 +148,7 @@ interface Test {
   passing_score?: number | null;
   status: "active" | "inactive" | "archived";
   created_at: string | Date;
-  icon?: string;
+  icon?: string | null;
 }
 
 interface Meta {
