@@ -1,17 +1,10 @@
-// src/app/schedule/page.tsx
 "use client";
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -19,16 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Calendar,
@@ -43,7 +27,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  CheckCircle,
   User,
   Brain,
   Building,
@@ -722,35 +705,6 @@ export default function SchedulePage() {
             onDateSelect={setSelectedDate}
           />
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Aksi Cepat</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setShowNewScheduleDialog(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Buat Jadwal Baru
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
-                Lihat Semua Jadwal
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                Kelola Peserta
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Clock className="mr-2 h-4 w-4" />
-                Pengaturan Waktu
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Upcoming Events */}
           <Card>
             <CardHeader>
@@ -786,135 +740,6 @@ export default function SchedulePage() {
           </Card>
         </div>
       </div>
-
-      {/* New Schedule Dialog */}
-      <Dialog
-        open={showNewScheduleDialog}
-        onOpenChange={setShowNewScheduleDialog}
-      >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Buat Jadwal Baru</DialogTitle>
-            <DialogDescription>
-              Atur jadwal sesi psikotes baru untuk kandidat atau karyawan
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="schedule-title">Judul Sesi</Label>
-              <Input
-                id="schedule-title"
-                placeholder="Contoh: Psikotes Batch Februari - PT ABC"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="schedule-date">Tanggal</Label>
-                <Input
-                  id="schedule-date"
-                  type="date"
-                  defaultValue={selectedDate.toISOString().split("T")[0]}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="schedule-company">Perusahaan</Label>
-                <Input id="schedule-company" placeholder="Nama perusahaan" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="start-time">Waktu Mulai</Label>
-                <Input id="start-time" type="time" defaultValue="09:00" />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="end-time">Waktu Selesai</Label>
-                <Input id="end-time" type="time" defaultValue="11:00" />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="location">Lokasi</Label>
-              <Input
-                id="location"
-                placeholder="Ruang meeting, alamat, atau platform online"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="session-type">Tipe Sesi</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih tipe sesi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="group">Grup</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="max-participants">Maksimal Peserta</Label>
-                <Input
-                  id="max-participants"
-                  type="number"
-                  placeholder="8"
-                  defaultValue="8"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="module">Modul Psikotes</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih modul yang akan digunakan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disc">DISC Assessment</SelectItem>
-                  <SelectItem value="iq">IQ Test (WAIS-IV)</SelectItem>
-                  <SelectItem value="bigfive">Big Five Personality</SelectItem>
-                  <SelectItem value="eq">Emotional Intelligence</SelectItem>
-                  <SelectItem value="holland">
-                    Holland Interest Inventory
-                  </SelectItem>
-                  <SelectItem value="comprehensive">
-                    Comprehensive Assessment
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Catatan (Opsional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Tambahkan catatan khusus untuk sesi ini..."
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowNewScheduleDialog(false)}
-            >
-              Batal
-            </Button>
-            <Button onClick={() => setShowNewScheduleDialog(false)}>
-              Buat Jadwal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
