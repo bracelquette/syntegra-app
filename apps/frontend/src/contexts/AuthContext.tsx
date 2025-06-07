@@ -42,7 +42,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = "https://backend.bracelquette.workers.dev/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Token storage configuration
 const TOKEN_STORAGE_KEY = "syntegra_token_storage_preference";
