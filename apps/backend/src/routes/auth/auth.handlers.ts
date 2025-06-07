@@ -67,6 +67,8 @@ export async function adminLoginHandler(
     const env = getEnv(c);
     const db = getDbFromEnv(c.env);
 
+    console.log("data Admin Login : ", data);
+
     if (!env.JWT_SECRET) {
       throw new Error("JWT_SECRET not configured");
     }
@@ -229,6 +231,7 @@ export async function adminLoginHandler(
         "unknown",
       user_agent: c.req.header("User-Agent") || "unknown",
       is_active: true,
+      updated_at: new Date(), // ADDED: Required field for database
     };
 
     await createAuthSession(db, sessionData);
@@ -400,6 +403,7 @@ export async function participantLoginHandler(
         "unknown",
       user_agent: c.req.header("User-Agent") || "unknown",
       is_active: true,
+      updated_at: new Date(), // ADDED: Required field for database
     };
 
     await createAuthSession(db, sessionData);
