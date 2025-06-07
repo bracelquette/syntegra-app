@@ -8,14 +8,16 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertCircle, Loader2, Eye, EyeOff, Info } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuth as useAuthContext } from "@/contexts/AuthContext";
 
-// Form validation schema - updated to match backend expectations
-const loginSchema = z.object({
+// PARTICIPANT LOGIN FORM (Updated)
+const participantLoginSchema = z.object({
   nik: z
     .string()
     .min(1, "NIK tidak boleh kosong")
@@ -25,9 +27,10 @@ const loginSchema = z.object({
     .string()
     .min(1, "Email tidak boleh kosong")
     .email("Format email tidak valid"),
+  rememberMe: z.boolean(),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type ParticipantLoginFormData = z.infer<typeof participantLoginSchema>;
 
 export function LoginFormParticipant({
   className,
@@ -35,6 +38,7 @@ export function LoginFormParticipant({
 }: React.ComponentProps<"div">) {
   const [showNIK, setShowNIK] = useState(false);
   const { useParticipantLogin } = useAuth();
+  const { setTokenStorage } = useAuthContext();
 
   const participantLoginMutation = useParticipantLogin();
 
@@ -44,27 +48,36 @@ export function LoginFormParticipant({
     formState: { errors },
     setError,
     clearErrors,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    watch,
+  } = useForm<ParticipantLoginFormData>({
+    resolver: zodResolver(participantLoginSchema),
     mode: "onChange",
+    defaultValues: {
+      nik: "",
+      email: "",
+      rememberMe: true, // Default to remember me
+    },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const watchedValues = watch();
+
+  const onSubmit = async (data: ParticipantLoginFormData) => {
     try {
       clearErrors();
 
+      // Set token storage preference before login
+      setTokenStorage(data.rememberMe ? "localStorage" : "sessionStorage");
+
       // Create participant login request
-      // The backend expects 'identifier' which can be NIK or email
-      // We'll try NIK first, then email if NIK fails
       const loginRequest = {
-        nik: data.nik, // Try NIK first
+        nik: data.nik,
         email: data.email,
       };
 
       await participantLoginMutation.mutateAsync(loginRequest);
     } catch (error: any) {
       console.error("Login error:", error);
-
+      // Error handling is done in the mutation's onError
       // Handle specific error cases based on the error message
       if (error.message) {
         const errorMsg = error.message.toLowerCase();
@@ -226,9 +239,6 @@ export function LoginFormParticipant({
                   {errors.nik.message}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                NIK Anda akan digunakan sebagai identitas login
-              </p>
             </div>
 
             {/* Email Field */}
@@ -252,9 +262,28 @@ export function LoginFormParticipant({
                   {errors.email.message}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Email yang terdaftar dalam sistem
-              </p>
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                {...register("rememberMe")}
+                disabled={isLoading}
+              />
+              <div className="space-y-1">
+                <Label
+                  htmlFor="rememberMe"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Ingat saya
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {watchedValues.rememberMe
+                    ? "Session akan tersimpan hingga 7 hari (localStorage)"
+                    : "Session akan hilang saat browser ditutup (sessionStorage)"}
+                </p>
+              </div>
             </div>
 
             {/* Submit Button */}
@@ -275,52 +304,35 @@ export function LoginFormParticipant({
             </Button>
           </div>
 
-          {/* Info Box */}
+          {/* Info Box with Storage Information */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
-              <div className="w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 mt-0.5">
-                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1"></div>
-              </div>
+              <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Informasi Login:</p>
                 <ul className="text-xs space-y-1 text-blue-700">
-                  <li>• Gunakan NIK 16 digit yang terdaftar</li>
-                  <li>• Pastikan email sesuai dengan data registrasi</li>
                   <li>
-                    • Sistem akan mencoba login dengan NIK terlebih dahulu
+                    • Session otomatis akan diperpanjang saat mendekati expired
+                  </li>
+                  <li>
+                    • Maksimal 3 session aktif per akun di berbagai perangkat
+                  </li>
+                  <li>• Token akan di-refresh secara otomatis setiap 2 jam</li>
+                  <li>
+                    • Anda dapat mengelola session aktif di pengaturan akun
                   </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Divider */}
+          {/* Navigation Links */}
           <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <Link href="/">
               <span className="relative z-10 bg-background px-2 text-muted-foreground hover:underline hover:text-primary transition-colors">
                 Kembali ke Home
               </span>
             </Link>
-          </div>
-
-          {/* Help Text */}
-          <div className="text-center text-xs text-muted-foreground">
-            <p>
-              Kesulitan masuk?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  toast.info("Bantuan Login", {
-                    description:
-                      "Hubungi admin untuk bantuan atau pastikan NIK dan email sudah terdaftar dalam sistem",
-                    duration: 5000,
-                  });
-                }}
-                className="text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
-              >
-                Klik di sini untuk bantuan
-              </button>
-            </p>
           </div>
         </div>
       </form>
