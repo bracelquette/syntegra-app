@@ -19,6 +19,7 @@ import { updateUserHandler } from "./user.update";
 import { deleteUserHandler } from "./user.delete";
 import { getUserSchemaHandler } from "./user.schema";
 import { getAdminStatusHandler } from "./user.status";
+import { getUserDetailHandler } from "./user.detail";
 import {
   authenticateUser,
   requireAdmin,
@@ -112,6 +113,30 @@ userRoutes.get(
     }
   }),
   getUserByIdHandler
+);
+
+// Get User Detail (Admin can access any user, participants can only access their own)
+userRoutes.get(
+  "/:userId/details",
+  generalApiRateLimit, // General rate limiting
+  authenticateUser, // First: Verify user is authenticated
+  requireAdmin, // Only admin can access user details
+  zValidator("param", GetUserByIdRequestSchema, (result, c) => {
+    if (!result.success) {
+      const errorResponse: ErrorResponse = {
+        success: false,
+        message: "Invalid user ID parameter",
+        errors: result.error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(errorResponse, 400);
+    }
+  }),
+  getUserDetailHandler
 );
 
 // Update User (Admin can update any user, participants can only update their own)
