@@ -1,4 +1,5 @@
 import React from "react";
+
 import {
   MoreHorizontal,
   Eye,
@@ -83,7 +84,6 @@ export function TableUser({
   onEditUser,
 }: TableUserProps) {
   const { openDeleteUserModal } = useModalStore();
-
   // Format age from birth_date
   const calculateAge = (birthDate: Date | null) => {
     if (!birthDate) return "-";
@@ -163,7 +163,7 @@ export function TableUser({
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-semibold text-sm">
+                          <div className="font-semibold text-sm hover:underline cursor-pointer">
                             {user.name}
                           </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -239,9 +239,7 @@ export function TableUser({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                            <DropdownMenuItem
-                            // onClick={}
-                            >
+                            <DropdownMenuItem>
                               <Eye className="mr-2 h-4 w-4" />
                               Lihat Detail
                             </DropdownMenuItem>
