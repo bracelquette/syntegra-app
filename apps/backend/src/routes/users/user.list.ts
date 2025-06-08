@@ -61,8 +61,6 @@ export async function getUsersListHandler(
       created_to: rawQueryParams.created_to || undefined,
     };
 
-    console.log("Parsed query params:", queryParams);
-
     // Get database connection
     const env = getEnv(c);
     const db = getDbFromEnv(c.env);
