@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useNextAuth } from "@/hooks/useNextAuth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -16,7 +16,7 @@ export function ProtectedRoute({
   allowedRoles = ["admin", "participant"],
   redirectTo,
 }: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated } = useNextAuth();
   const router = useRouter();
 
   useEffect(() => {

@@ -13,8 +13,7 @@ import { AlertCircle, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
-import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import { useNextAuth } from "@/hooks/useNextAuth";
 
 // PARTICIPANT LOGIN FORM (Updated)
 const participantLoginSchema = z.object({
@@ -32,8 +31,7 @@ export function LoginFormParticipant({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { useParticipantLogin } = useAuth();
-  const { setTokenStorage } = useAuthContext();
+  const { useParticipantLogin } = useNextAuth();
 
   const participantLoginMutation = useParticipantLogin();
 
@@ -59,18 +57,16 @@ export function LoginFormParticipant({
     try {
       clearErrors();
 
-      // Set token storage preference before login
-      setTokenStorage(data.rememberMe ? "localStorage" : "sessionStorage");
-
       // Create participant login request
       const loginRequest = {
         phone: data.phone.trim(),
+        rememberMe: data.rememberMe,
       };
 
       await participantLoginMutation.mutateAsync(loginRequest);
     } catch (error: any) {
       console.error("Login error:", error);
-      // Error handling is done in the mutation's onError
+
       // Handle specific error cases based on the error message
       if (error.message) {
         const errorMsg = error.message.toLowerCase();
@@ -218,8 +214,8 @@ export function LoginFormParticipant({
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {watchedValues.rememberMe
-                    ? "Session akan tersimpan hingga 7 hari (localStorage)"
-                    : "Session akan hilang saat browser ditutup (sessionStorage)"}
+                    ? "Session akan disimpan hingga expired (JWT)"
+                    : "Session akan menggunakan default Next-Auth"}
                 </p>
               </div>
             </div>
@@ -242,7 +238,7 @@ export function LoginFormParticipant({
             </Button>
           </div>
 
-          {/* Info Box with Storage Information */}
+          {/* Info Box with Next-Auth Information */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -250,15 +246,17 @@ export function LoginFormParticipant({
                 <p className="font-medium mb-1">Informasi Login:</p>
                 <ul className="text-xs space-y-1 text-blue-700">
                   <li>
-                    • Session otomatis akan diperpanjang saat mendekati expired
+                    • Session dikelola dengan Next-Auth v5 untuk keamanan
+                    optimal
                   </li>
                   <li>
-                    • Maksimal 3 session aktif per akun di berbagai perangkat
+                    • Token akan di-refresh secara otomatis saat mendekati
+                    expired
                   </li>
-                  <li>• Token akan di-refresh secara otomatis setiap 2 jam</li>
                   <li>
                     • Anda dapat mengelola session aktif di pengaturan akun
                   </li>
+                  <li>• Logout otomatis jika terjadi error authentication</li>
                 </ul>
               </div>
             </div>

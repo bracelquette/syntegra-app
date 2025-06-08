@@ -17,11 +17,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNextAuth } from "@/hooks/useNextAuth";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const { logout, user } = useAuth();
+  const { logout, user } = useNextAuth();
 
   const handleLogout = () => {
     logout();

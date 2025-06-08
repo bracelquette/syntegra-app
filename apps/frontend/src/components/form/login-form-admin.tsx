@@ -13,8 +13,7 @@ import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
-import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import { useNextAuth } from "@/hooks/useNextAuth";
 
 // Form validation schema - sesuai dengan AdminLoginRequestSchema
 const adminLoginSchema = z.object({
@@ -37,8 +36,7 @@ export function LoginFormAdmin({
   ...props
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
-  const { useAdminLogin } = useAuth();
-  const { setTokenStorage } = useAuthContext();
+  const { useAdminLogin } = useNextAuth();
 
   const adminLoginMutation = useAdminLogin();
 
@@ -75,15 +73,13 @@ export function LoginFormAdmin({
         description: "Mohon tunggu, kami sedang memverifikasi kredensial Anda",
       });
 
-      setTokenStorage(data.rememberMe ? "localStorage" : "sessionStorage");
-
       // Call admin login mutation
       await adminLoginMutation.mutateAsync({
         identifier: data.email.toLowerCase().trim(),
         password: data.password,
+        rememberMe: data.rememberMe,
       });
 
-      // Dismiss loading toast (success handling is done in useAuth hook)
       toast.dismiss(loadingToast);
     } catch (error: any) {
       console.error("Admin login error:", error);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,23 +10,7 @@ interface ApiRequestOptions extends RequestInit {
 }
 
 export function useApi() {
-  const { refreshAuth, logout, getSessionInfo } = useAuth();
-
-  // Get tokens from current storage
-  const getTokens = useCallback(() => {
-    if (typeof window === "undefined")
-      return { accessToken: null, refreshToken: null };
-
-    // Try localStorage first, then sessionStorage
-    let accessToken =
-      localStorage.getItem("access_token") ||
-      sessionStorage.getItem("access_token");
-    let refreshToken =
-      localStorage.getItem("refresh_token") ||
-      sessionStorage.getItem("refresh_token");
-
-    return { accessToken, refreshToken };
-  }, []);
+  const { data: session, update } = useSession();
 
   const apiCall = useCallback(
     async <T = any>(
@@ -36,26 +20,8 @@ export function useApi() {
       const url = `${API_BASE_URL}${endpoint}`;
       const { skipAuthRefresh = false, ...requestOptions } = options;
 
-      // Get current tokens
-      let { accessToken } = getTokens();
-
-      // Check if token is expiring soon and refresh if needed
-      if (!skipAuthRefresh && accessToken) {
-        const sessionInfo = getSessionInfo();
-        if (
-          sessionInfo.isExpiringSoon &&
-          sessionInfo.timeUntilExpiry !== null &&
-          sessionInfo.timeUntilExpiry > 0
-        ) {
-          console.log("Token expiring soon, attempting refresh...");
-          const refreshed = await refreshAuth();
-          if (refreshed) {
-            // Get updated token
-            const updatedTokens = getTokens();
-            accessToken = updatedTokens.accessToken;
-          }
-        }
-      }
+      // Get access token from session
+      const accessToken = session?.accessToken;
 
       // Prepare headers
       const headers: Record<string, string> = {
@@ -74,27 +40,25 @@ export function useApi() {
       });
 
       // Handle 401 - Unauthorized (token expired or invalid)
-      if (response.status === 401 && !skipAuthRefresh) {
-        console.log("Received 401, attempting token refresh...");
+      if (response.status === 401 && !skipAuthRefresh && session) {
+        console.log("Received 401, attempting session refresh...");
 
-        // Try to refresh token
-        const refreshed = await refreshAuth();
+        try {
+          // Trigger session update (will call JWT callback)
+          await update();
 
-        if (refreshed) {
-          // Retry the original request with new token
-          const { accessToken: newAccessToken } = getTokens();
+          // Get updated session
+          const updatedAccessToken = session?.accessToken;
 
-          if (newAccessToken) {
-            headers.Authorization = `Bearer ${newAccessToken}`;
+          if (updatedAccessToken) {
+            headers.Authorization = `Bearer ${updatedAccessToken}`;
             response = await fetch(url, {
               ...requestOptions,
               headers,
             });
           }
-        } else {
-          // Refresh failed, logout user
-          console.log("Token refresh failed, logging out...");
-          await logout();
+        } catch (error) {
+          console.log("Session refresh failed:", error);
           throw new Error("Authentication failed - please login again");
         }
       }
@@ -131,7 +95,7 @@ export function useApi() {
 
       return response.json();
     },
-    [refreshAuth, logout, getTokens, getSessionInfo]
+    [session, update]
   );
 
   // Specialized method for authenticated requests
@@ -140,7 +104,7 @@ export function useApi() {
       endpoint: string,
       options: ApiRequestOptions = {}
     ): Promise<T> => {
-      const { accessToken } = getTokens();
+      const accessToken = session?.accessToken;
 
       if (!accessToken) {
         throw new Error("No access token available - please login");
@@ -148,7 +112,7 @@ export function useApi() {
 
       return apiCall<T>(endpoint, options);
     },
-    [apiCall, getTokens]
+    [apiCall, session]
   );
 
   // Specialized method for public requests (no auth required)
@@ -169,6 +133,9 @@ export function useApi() {
     apiCall,
     authenticatedCall,
     publicCall,
-    getTokens,
+    getTokens: () => ({
+      accessToken: session?.accessToken || null,
+      refreshToken: session?.refreshToken || null,
+    }),
   };
 }

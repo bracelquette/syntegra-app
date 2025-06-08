@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { useApi } from "./useApi";
 
 // Admin Dashboard Types (existing)
@@ -98,28 +99,31 @@ export interface GetParticipantDashboardResponse {
 }
 
 export function useDashboard() {
+  const { data: session } = useSession();
   const { apiCall } = useApi();
 
   // Get admin dashboard data (existing)
   const useGetAdminDashboard = () => {
     return useQuery({
-      queryKey: ["dashboard", "admin"],
+      queryKey: ["dashboard", "admin", session?.user?.id],
       queryFn: () => apiCall<GetAdminDashboardResponse>("/dashboard/admin"),
       staleTime: 2 * 60 * 1000, // 2 minutes
       refetchInterval: 5 * 60 * 1000, // Auto refetch every 5 minutes
+      enabled: !!session?.user && session.user.role === "admin",
     });
   };
 
   // Get participant dashboard data (new)
   const useGetParticipantDashboard = () => {
     return useQuery({
-      queryKey: ["dashboard", "participant"],
+      queryKey: ["dashboard", "participant", session?.user?.id],
       queryFn: () =>
         apiCall<GetParticipantDashboardResponse>("/dashboard/participant"),
       staleTime: 2 * 60 * 1000, // 2 minutes
       refetchInterval: 3 * 60 * 1000, // Auto refetch every 3 minutes
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      enabled: !!session?.user && session.user.role === "participant",
     });
   };
 

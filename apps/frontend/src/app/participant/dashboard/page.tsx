@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth as useAuthContext } from "@/contexts/AuthContext";
+import { useNextAuth } from "@/hooks/useNextAuth";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 export default function ParticipantDashboardPage() {
-  const { user: authUser, isLoading: authLoading } = useAuthContext();
+  const { user: authUser, isLoading: authLoading } = useNextAuth();
   const { useGetParticipantDashboard } = useDashboard();
 
   const {
