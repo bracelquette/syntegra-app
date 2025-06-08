@@ -48,6 +48,7 @@ app.get("/", (c) => {
         create: "POST /api/v1/users",
         list: "GET /api/v1/users",
         get: "GET /api/v1/users/:id",
+        details: "GET /api/v1/users/:id/details",
         update: "PUT /api/v1/users/:id",
         delete: "DELETE /api/v1/users/:id",
         schema: "GET /api/v1/users/schema",
