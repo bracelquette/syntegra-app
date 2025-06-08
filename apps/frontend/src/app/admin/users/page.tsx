@@ -31,7 +31,6 @@ export default function UsersManagementPage() {
   // Get users data
   const { useGetUsers } = useUsers();
   const { data: usersResponse, isLoading, error } = useGetUsers(filters);
-  console.log("usersResponse", usersResponse);
 
   // Calculate statistics
   const stats = useMemo(() => {

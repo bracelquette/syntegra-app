@@ -21,12 +21,12 @@ import React, { ReactNode } from "react";
 
 // Mapping untuk breadcrumb
 const breadcrumbMap: Record<string, { title: string; href?: string }> = {
-  "/dashboard": { title: "Dashboard" },
-  "/users": { title: "Manajemen Peserta" },
-  "/reports": { title: "Laporan & Hasil" },
-  "/tests": { title: "Modul Psikotes" },
-  "/sessions": { title: "Sesi & Waktu" },
-  "/settings": { title: "Pengaturan Sistem" },
+  "/admin/dashboard": { title: "Dashboard" },
+  "/admin/users": { title: "Manajemen Peserta" },
+  "/admin/reports": { title: "Laporan & Hasil" },
+  "/admin/tests": { title: "Modul Psikotes" },
+  "/admin/sessions": { title: "Sesi & Waktu" },
+  "/admin/settings": { title: "Pengaturan Sistem" },
 };
 
 const LayoutAdmin = ({ children }: { children: ReactNode }) => {
@@ -34,10 +34,10 @@ const LayoutAdmin = ({ children }: { children: ReactNode }) => {
 
   // Handle dynamic routes
   const getBreadcrumb = () => {
-    if (pathname.startsWith("/users/") && pathname !== "/users") {
-      // This is a participant detail page
+    if (pathname.startsWith("/admin/users/") && pathname !== "/admin/users") {
+      // This is a user detail page
       return {
-        parent: { title: "Manajemen Peserta", href: "/users" },
+        parent: { title: "Manajemen Peserta", href: "/admin/users" },
         current: { title: "Detail Peserta" },
       };
     }
@@ -61,7 +61,7 @@ const LayoutAdmin = ({ children }: { children: ReactNode }) => {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">
+                    <BreadcrumbLink href="/admin/dashboard">
                       Sistem Psikotes
                     </BreadcrumbLink>
                   </BreadcrumbItem>
